@@ -2,33 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
-import type { PrismaClient } from "@prisma/client";
 
-/** Evita crash se o cliente Prisma em memória estiver desatualizado (correr `npx prisma generate` e reiniciar o `next dev`). */
-async function notificarVendedoresPedidoCardapio(
-  db: PrismaClient,
-  solicitacaoCardapioId: string
-) {
-  const ext = db as unknown as {
-    cardapioAlertaVendedor?: {
-      findMany: (args: {
-        select: { sellerId: true };
-      }) => Promise<{ sellerId: string }[]>;
-    };
-    notificacaoSolicitacaoCardapio?: {
-      createMany: (args: {
-        data: { solicitacaoCardapioId: string; sellerId: string }[];
-        skipDuplicates?: boolean;
-      }) => Promise<unknown>;
-    };
-  };
-  if (!ext.cardapioAlertaVendedor || !ext.notificacaoSolicitacaoCardapio) return;
-
-  const destinos = await ext.cardapioAlertaVendedor.findMany({
+async function notificarVendedoresPedidoCardapio(solicitacaoCardapioId: string) {
+  const destinos = await prisma.cardapioAlertaVendedor.findMany({
     select: { sellerId: true },
   });
   if (destinos.length === 0) return;
-  await ext.notificacaoSolicitacaoCardapio.createMany({
+  await prisma.notificacaoSolicitacaoCardapio.createMany({
     data: destinos.map((d) => ({
       solicitacaoCardapioId,
       sellerId: d.sellerId,
@@ -86,7 +66,7 @@ export async function actionPedirCardapio(
     select: { id: true },
   });
 
-  await notificarVendedoresPedidoCardapio(prisma, criada.id);
+  await notificarVendedoresPedidoCardapio(criada.id);
 
   revalidatePath("/pedidos-cardapio");
   revalidatePath("/pedidos-cardapio/alertas");

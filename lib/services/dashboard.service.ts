@@ -6,6 +6,29 @@ import {
   sumEstoqueEmPosse,
   sumVendasNoPeriodo,
 } from "@/lib/services/calculations.service";
+import { logDevError } from "@/lib/utils/dev-log";
+
+async function productStatsSeguro(): Promise<{
+  totalProdutosCadastrados: number;
+  produtosEstoqueBaixo: number;
+}> {
+  try {
+    const [totalProdutosCadastrados, produtosParaAlerta] = await Promise.all([
+      prisma.product.count({ where: { ativo: true } }),
+      prisma.product.findMany({
+        where: { ativo: true },
+        select: { estoqueCentral: true, estoqueMinimo: true },
+      }),
+    ]);
+    const produtosEstoqueBaixo = produtosParaAlerta.filter(
+      (p) => p.estoqueCentral <= p.estoqueMinimo
+    ).length;
+    return { totalProdutosCadastrados, produtosEstoqueBaixo };
+  } catch (e) {
+    logDevError("productStatsSeguro", e);
+    return { totalProdutosCadastrados: 0, produtosEstoqueBaixo: 0 };
+  }
+}
 
 export async function getDashboardKpis(
   from: Date,
@@ -13,28 +36,19 @@ export async function getDashboardKpis(
 ): Promise<DashboardKpis> {
   const [
     estoqueCentralTotal,
-    totalProdutosCadastrados,
+    { totalProdutosCadastrados, produtosEstoqueBaixo },
     estoqueEmPosseVendedores,
     totalVendidoPeriodo,
     financeiro,
     vendedoresAtivos,
-    produtosParaAlerta,
   ] = await Promise.all([
     sumEstoqueCentral(),
-    prisma.product.count({ where: { ativo: true } }),
+    productStatsSeguro(),
     sumEstoqueEmPosse(),
     sumVendasNoPeriodo(from, to),
     getGlobalFinancialTotals(),
     prisma.seller.count({ where: { ativo: true } }),
-    prisma.product.findMany({
-      where: { ativo: true },
-      select: { estoqueCentral: true, estoqueMinimo: true },
-    }),
   ]);
-
-  const produtosEstoqueBaixo = produtosParaAlerta.filter(
-    (p) => p.estoqueCentral <= p.estoqueMinimo
-  ).length;
 
   return {
     estoqueCentralTotal,

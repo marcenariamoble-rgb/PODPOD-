@@ -3,7 +3,7 @@
   "name": "PodPod",
   "short_name": "PodPod",
   "description": "App do vendedor PodPod — estoque, vendas e devoluções.",
-  "start_url": "/vendedor",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",

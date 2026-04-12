@@ -12,7 +12,11 @@ export function RegisterServiceWorker() {
       process.env.NODE_ENV === "production" ||
       process.env.NEXT_PUBLIC_PWA === "1";
     if (!enable) return;
-    navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {});
+    navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch((err) => {
+      if (process.env.NODE_ENV === "development") {
+        console.error("[service-worker]", err);
+      }
+    });
   }, []);
   return null;
 }

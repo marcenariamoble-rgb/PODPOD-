@@ -1,47 +1,5 @@
 import { prisma } from "@/lib/db";
 
-/** Delegates opcionais se o Prisma Client em memória estiver desatualizado. */
-function delegates() {
-  return prisma as unknown as {
-    cardapioAlertaVendedor?: {
-      findMany: (args: {
-        select: { sellerId: true };
-      }) => Promise<{ sellerId: string }[]>;
-    };
-    notificacaoSolicitacaoCardapio?: {
-      count: (args: {
-        where: { sellerId: string; lida: boolean };
-      }) => Promise<number>;
-      findMany: (args: {
-        where: { sellerId: string };
-        orderBy: { createdAt: "desc" };
-        take: number;
-        include: {
-          solicitacao: {
-            include: {
-              produto: { select: { nome: true; sku: true } };
-            };
-          };
-        };
-      }) => Promise<
-        {
-          id: string;
-          lida: boolean;
-          createdAt: Date;
-          solicitacaoCardapioId: string;
-          solicitacao: {
-            quantidade: number;
-            nomeContato: string | null;
-            telefone: string | null;
-            observacoes: string | null;
-            produto: { nome: string; sku: string };
-          };
-        }[]
-      >;
-    };
-  };
-}
-
 export type SellerComAlertaOpcao = {
   id: string;
   nome: string;
@@ -53,7 +11,6 @@ export type SellerComAlertaOpcao = {
 };
 
 export async function listSellersParaAlertaCardapio(): Promise<SellerComAlertaOpcao[]> {
-  const d = delegates().cardapioAlertaVendedor;
   const [sellers, alertas] = await Promise.all([
     prisma.seller.findMany({
       where: { ativo: true },
@@ -66,7 +23,7 @@ export async function listSellersParaAlertaCardapio(): Promise<SellerComAlertaOp
         user: { select: { email: true, role: true } },
       },
     }),
-    d ? d.findMany({ select: { sellerId: true } }) : Promise.resolve([]),
+    prisma.cardapioAlertaVendedor.findMany({ select: { sellerId: true } }),
   ]);
   const setAlerta = new Set(alertas.map((a) => a.sellerId));
   return sellers.map((s) => ({
@@ -83,9 +40,7 @@ export async function listSellersParaAlertaCardapio(): Promise<SellerComAlertaOp
 export async function countNotificacoesCardapioNaoLidas(
   sellerId: string
 ): Promise<number> {
-  const n = delegates().notificacaoSolicitacaoCardapio;
-  if (!n) return 0;
-  return n.count({
+  return prisma.notificacaoSolicitacaoCardapio.count({
     where: { sellerId, lida: false },
   });
 }
@@ -106,10 +61,7 @@ export type NotificacaoCardapioVendedorItem = {
 export async function listNotificacoesCardapioVendedor(
   sellerId: string
 ): Promise<NotificacaoCardapioVendedorItem[]> {
-  const n = delegates().notificacaoSolicitacaoCardapio;
-  if (!n) return [];
-
-  const rows = await n.findMany({
+  const rows = await prisma.notificacaoSolicitacaoCardapio.findMany({
     where: { sellerId },
     orderBy: { createdAt: "desc" },
     take: 100,

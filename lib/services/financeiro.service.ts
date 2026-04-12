@@ -1,6 +1,24 @@
 import { StatusFinanceiro } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { logDevError } from "@/lib/utils/dev-log";
 import { toNumber } from "@/lib/utils/money";
+
+function fifoMontanteAplicado(
+  vendas: { id: string; need: number }[],
+  poolInicial: number,
+  vendaId: string
+): number {
+  let pool = poolInicial;
+  for (const v of vendas) {
+    const need = v.need;
+    if (v.id === vendaId) {
+      return Math.min(need, Math.max(0, pool));
+    }
+    const paid = Math.min(need, pool);
+    pool = Math.max(0, pool - paid);
+  }
+  return 0;
+}
 
 /**
  * Quanto do pool de recebimentos foi atribuído a esta venda pelo mesmo FIFO
@@ -12,29 +30,40 @@ export async function calcularMontanteRepasseCobertoFifoForVenda(
   vendedorId: string,
   vendaId: string
 ): Promise<number> {
-  const [vendas, recebSum] = await Promise.all([
-    prisma.venda.findMany({
+  const recebSum = await prisma.recebimento.aggregate({
+    where: { vendedorId },
+    _sum: { valorRecebido: true },
+  });
+  const poolInicial = toNumber(recebSum._sum.valorRecebido);
+
+  let vendas: { id: string; need: number }[];
+  try {
+    const rows = await prisma.venda.findMany({
       where: { vendedorId },
       orderBy: { createdAt: "asc" },
       select: { id: true, valorSaldoRepasse: true },
-    }),
-    prisma.recebimento.aggregate({
+    });
+    vendas = rows.map((r) => ({
+      id: r.id,
+      need: toNumber(r.valorSaldoRepasse),
+    }));
+  } catch (e) {
+    logDevError("calcularMontanteRepasseCobertoFifoForVenda(fallback)", e);
+    const rows = await prisma.venda.findMany({
       where: { vendedorId },
-      _sum: { valorRecebido: true },
-    }),
-  ]);
-
-  let pool = toNumber(recebSum._sum.valorRecebido);
-
-  for (const v of vendas) {
-    const need = toNumber(v.valorSaldoRepasse);
-    if (v.id === vendaId) {
-      return Math.min(need, Math.max(0, pool));
-    }
-    const paid = Math.min(need, pool);
-    pool = Math.max(0, pool - paid);
+      orderBy: { createdAt: "asc" },
+      select: { id: true, valorTotal: true, valorComissaoRetida: true },
+    });
+    vendas = rows.map((r) => ({
+      id: r.id,
+      need: Math.max(
+        0,
+        toNumber(r.valorTotal) - toNumber(r.valorComissaoRetida)
+      ),
+    }));
   }
-  return 0;
+
+  return fifoMontanteAplicado(vendas, poolInicial, vendaId);
 }
 
 /**
@@ -44,14 +73,15 @@ export async function recalcularStatusVendasVendedor(
   vendedorId: string
 ): Promise<void> {
   const [vendas, recebSum] = await Promise.all([
-    prisma.$queryRaw<
-      { id: string; valorSaldoRepasse: unknown; statusFinanceiro: string }[]
-    >`
-      SELECT "id", "valorSaldoRepasse", "statusFinanceiro"::text AS "statusFinanceiro"
-      FROM "Venda"
-      WHERE "vendedorId" = ${vendedorId}
-      ORDER BY "createdAt" ASC
-    `,
+    prisma.venda.findMany({
+      where: { vendedorId },
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        valorSaldoRepasse: true,
+        statusFinanceiro: true,
+      },
+    }),
     prisma.recebimento.aggregate({
       where: { vendedorId },
       _sum: { valorRecebido: true },
@@ -61,7 +91,7 @@ export async function recalcularStatusVendasVendedor(
   let pool = toNumber(recebSum._sum.valorRecebido);
 
   for (const v of vendas) {
-    const valor = toNumber(v.valorSaldoRepasse as never);
+    const valor = toNumber(v.valorSaldoRepasse);
     let status: StatusFinanceiro;
     if (pool >= valor) {
       status = StatusFinanceiro.PAGO;
@@ -75,7 +105,7 @@ export async function recalcularStatusVendasVendedor(
     if (v.statusFinanceiro !== status) {
       await prisma.venda.update({
         where: { id: v.id },
-        data: { statusFinanceiro: status as StatusFinanceiro },
+        data: { statusFinanceiro: status },
       });
     }
   }

@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { auth } from "@/lib/auth";
 import { isAdminRoute, isVendedorArea } from "@/lib/routes";
 
-export async function middleware(req: NextRequest) {
+/**
+ * Usa o mesmo `auth()` do NextAuth v5 que as Server Components.
+ * O antigo `getToken` do JWT podia divergir na Vercel e causar loop:
+ * /login via `auth()` via sessão → /dashboard → middleware sem token → /login…
+ */
+export default auth((req) => {
   const path = req.nextUrl.pathname;
 
   if (
@@ -18,17 +22,9 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const secret = process.env.AUTH_SECRET;
-  if (!secret) {
-    console.warn("AUTH_SECRET ausente — middleware de auth limitado.");
-  }
-
-  const token = await getToken({
-    req,
-    secret: secret ?? "dev-insecure-placeholder",
-  });
-  const logged = !!token;
-  const role = token?.role as string | undefined;
+  const session = req.auth;
+  const logged = !!session?.user;
+  const role = session?.user?.role;
   const isVendedor = role === "VENDEDOR";
 
   const isLogin = path === "/login";
@@ -66,7 +62,7 @@ export async function middleware(req: NextRequest) {
   }
 
   return NextResponse.next();
-}
+});
 
 export const config = {
   matcher: [

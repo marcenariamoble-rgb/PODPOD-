@@ -4,20 +4,6 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
-function delegates() {
-  return prisma as unknown as {
-    cardapioAlertaVendedor?: {
-      upsert: (args: object) => Promise<unknown>;
-      deleteMany: (args: object) => Promise<unknown>;
-    };
-    notificacaoSolicitacaoCardapio?: {
-      findFirst: (args: object) => Promise<{ id: string } | null>;
-      update: (args: object) => Promise<unknown>;
-      updateMany: (args: object) => Promise<unknown>;
-    };
-  };
-}
-
 async function requireStaff() {
   const session = await auth();
   const role = session?.user?.role;
@@ -39,17 +25,14 @@ export async function actionDefinirAlertaCardapioVendedor(formData: FormData) {
   });
   if (!exists) return;
 
-  const ca = delegates().cardapioAlertaVendedor;
-  if (!ca) return;
-
   if (ativo) {
-    await ca.upsert({
+    await prisma.cardapioAlertaVendedor.upsert({
       where: { sellerId },
       create: { sellerId },
       update: {},
     });
   } else {
-    await ca.deleteMany({ where: { sellerId } });
+    await prisma.cardapioAlertaVendedor.deleteMany({ where: { sellerId } });
   }
 
   revalidatePath("/pedidos-cardapio/alertas");
@@ -64,16 +47,13 @@ export async function actionMarcarNotificacaoCardapioLida(formData: FormData) {
   const id = String(formData.get("id") ?? "").trim();
   if (!id) return;
 
-  const ns = delegates().notificacaoSolicitacaoCardapio;
-  if (!ns) return;
-
-  const n = await ns.findFirst({
+  const n = await prisma.notificacaoSolicitacaoCardapio.findFirst({
     where: { id, sellerId: session.user.sellerId },
     select: { id: true },
   });
   if (!n) return;
 
-  await ns.update({
+  await prisma.notificacaoSolicitacaoCardapio.update({
     where: { id },
     data: { lida: true },
   });
@@ -87,10 +67,7 @@ export async function actionMarcarTodasNotificacoesCardapioLidas() {
   if (session?.user?.role !== "VENDEDOR" || !session.user.sellerId) {
     throw new Error("Sem permissão.");
   }
-  const ns = delegates().notificacaoSolicitacaoCardapio;
-  if (!ns) return;
-
-  await ns.updateMany({
+  await prisma.notificacaoSolicitacaoCardapio.updateMany({
     where: { sellerId: session.user.sellerId, lida: false },
     data: { lida: true },
   });

@@ -37,10 +37,9 @@ export default async function DashboardPage() {
     vendasPorProdutoNoPeriodo(from, to),
     recebimentosPorDiaNoPeriodo(from, to),
     estoquePorVendedor(),
-    // Cliente Prisma em memória pode estar desatualizado até reiniciar o `next dev`.
-    (prisma.solicitacaoCardapio?.count({
+    prisma.solicitacaoCardapio.count({
       where: { visualizado: false },
-    }) ?? Promise.resolve(0)),
+    }),
   ]);
 
   const periodoLabel = `${format(from, "d MMM", { locale: ptBR })} — ${format(to, "d MMM yyyy", { locale: ptBR })}`;

@@ -5,9 +5,28 @@ import { redirect } from "next/navigation";
 import { PodPodMark } from "@/components/brand/podpod-mark";
 import { LoginForm } from "@/components/forms/login-form";
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ callbackUrl?: string | string[] }>;
+}) {
   const session = await auth();
-  if (session?.user) redirect("/dashboard");
+  if (session?.user) {
+    const sp = await searchParams;
+    const raw = sp.callbackUrl;
+    const cb = Array.isArray(raw) ? raw[0] : raw;
+    const isVendedor = session.user.role === "VENDEDOR";
+    if (cb && typeof cb === "string" && cb.startsWith("/") && !cb.startsWith("//")) {
+      if (isVendedor && !cb.startsWith("/vendedor")) {
+        redirect("/vendedor");
+      }
+      if (!isVendedor && cb.startsWith("/vendedor")) {
+        redirect("/dashboard");
+      }
+      redirect(cb);
+    }
+    redirect(isVendedor ? "/vendedor" : "/dashboard");
+  }
 
   return (
     <div className="login-canvas relative flex min-h-dvh flex-col items-center justify-center overflow-hidden px-4 py-10">
