@@ -1,0 +1,228 @@
+// PodPod — estoque, comodato e vendas
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  OPERADOR
+  VENDEDOR
+}
+
+enum TipoMovimentacao {
+  ENTRADA
+  SAIDA_MANUAL
+  ENTREGA_COMODATO
+  DEVOLUCAO
+  VENDA
+  ESTORNO_VENDA
+  PERDA
+  AJUSTE
+}
+
+enum StatusFinanceiro {
+  PENDENTE
+  PARCIAL
+  PAGO
+}
+
+/// Como a comissão do vendedor é calculada quando retida na hora da venda.
+enum ComissaoVendedorTipo {
+  NENHUMA
+  PERCENTUAL_SOBRE_VENDA
+  FIXA_POR_UNIDADE
+}
+
+model User {
+  id              String                @id @default(cuid())
+  nome            String
+  email           String                @unique
+  senhaHash       String
+  role            Role                  @default(OPERADOR)
+  sellerId        String?               @unique
+  ativo           Boolean               @default(true)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  movimentacoes   MovimentacaoEstoque[]
+  seller          Seller?               @relation(fields: [sellerId], references: [id])
+}
+
+model Product {
+  id                 String   @id @default(cuid())
+  nome               String
+  marca              String
+  sabor              String
+  categoria          String
+  sku                String   @unique
+  custoUnitario      Decimal  @db.Decimal(12, 2)
+  precoVendaSugerido Decimal  @db.Decimal(12, 2)
+  estoqueCentral     Int      @default(0)
+  estoqueMinimo      Int      @default(0)
+  ativo              Boolean  @default(true)
+  /// URL da foto no cardápio público (https://… ou caminho /… em public)
+  fotoUrl            String?
+  observacoes        String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  movimentacoes        MovimentacaoEstoque[]
+  vendas               Venda[]
+  sellerStocks         SellerProductStock[]
+  solicitacoesCardapio SolicitacaoCardapio[]
+}
+
+/// Pedido feito pelo cardápio público (botão «Pedir») — gera alerta para o administrador.
+model SolicitacaoCardapio {
+  id            String   @id @default(cuid())
+  productId     String
+  quantidade    Int      @default(1)
+  nomeContato   String?
+  telefone      String?
+  observacoes   String?
+  visualizado   Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  produto Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  notificacoesVendedor NotificacaoSolicitacaoCardapio[]
+
+  @@index([productId])
+  @@index([visualizado, createdAt])
+}
+
+/// Vendedores (Seller) que o administrador escolheu para receber notificação de cada novo pedido do cardápio público.
+model CardapioAlertaVendedor {
+  sellerId  String   @id
+  createdAt DateTime @default(now())
+  seller    Seller   @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+}
+
+/// Uma linha por (pedido do cardápio × vendedor a notificar): o vendedor marca como lida no portal.
+model NotificacaoSolicitacaoCardapio {
+  id                    String   @id @default(cuid())
+  solicitacaoCardapioId String
+  sellerId              String
+  lida                  Boolean  @default(false)
+  createdAt             DateTime @default(now())
+
+  solicitacao SolicitacaoCardapio @relation(fields: [solicitacaoCardapioId], references: [id], onDelete: Cascade)
+  seller      Seller              @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+
+  @@unique([solicitacaoCardapioId, sellerId])
+  @@index([sellerId, lida, createdAt])
+}
+
+model Seller {
+  id             String   @id @default(cuid())
+  nome           String
+  telefone       String?
+  cidade         String?
+  regiao         String?
+  limiteComodato Int?
+  ativo          Boolean  @default(true)
+  observacoes    String?
+  /// Se true, o vendedor já desconta a comissão na venda e repassa só o saldo (valor líquido para a empresa).
+  comissaoDescontaNaVenda Boolean              @default(false)
+  comissaoTipo            ComissaoVendedorTipo @default(NENHUMA)
+  /// Percentual sobre o valor bruto da venda (ex.: 15 = 15%).
+  comissaoPercentual      Decimal?             @db.Decimal(5, 2)
+  /// Valor fixo de comissão por unidade vendida (R$).
+  comissaoPorUnidade      Decimal?             @db.Decimal(12, 2)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  movimentacoes MovimentacaoEstoque[]
+  vendas        Venda[]
+  recebimentos  Recebimento[]
+  sellerStocks  SellerProductStock[]
+  user          User?
+  cardapioAlerta       CardapioAlertaVendedor?
+  notificacoesCardapio NotificacaoSolicitacaoCardapio[]
+}
+
+/// Estoque em posse do vendedor por produto (atualizado pelos serviços)
+model SellerProductStock {
+  id         String  @id @default(cuid())
+  sellerId String
+  productId  String
+  quantidade Int     @default(0)
+
+  seller  Seller  @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([sellerId, productId])
+  @@index([sellerId])
+  @@index([productId])
+}
+
+model MovimentacaoEstoque {
+  id                   String            @id @default(cuid())
+  tipoMovimentacao     TipoMovimentacao
+  produtoId            String
+  vendedorId           String?
+  quantidade           Int
+  valorUnitario        Decimal?          @db.Decimal(12, 2)
+  valorTotal           Decimal?          @db.Decimal(12, 2)
+  observacoes          String?
+  usuarioResponsavelId String
+  createdAt            DateTime          @default(now())
+  /// Quando o lançamento é o registro automático da venda (para estorno em cascata).
+  vendaId              String?           @unique
+  venda                Venda?            @relation(fields: [vendaId], references: [id], onDelete: Cascade)
+
+  produto              Product           @relation(fields: [produtoId], references: [id])
+  vendedor             Seller?           @relation(fields: [vendedorId], references: [id])
+  usuarioResponsavel   User              @relation(fields: [usuarioResponsavelId], references: [id])
+
+  @@index([tipoMovimentacao])
+  @@index([createdAt])
+  @@index([produtoId])
+  @@index([vendedorId])
+}
+
+model Venda {
+  id                       String             @id @default(cuid())
+  vendedorId               String
+  produtoId                String
+  quantidade               Int
+  /// Unidades puxadas do estoque central na mesma operação (alocação automática).
+  quantidadeAlocadaCentral Int                @default(0)
+  valorUnitario            Decimal            @db.Decimal(12, 2)
+  /// Valor pago pelo cliente (bruto).
+  valorTotal               Decimal            @db.Decimal(12, 2)
+  /// Comissão retida pelo vendedor nesta venda (quando aplicável).
+  valorComissaoRetida      Decimal            @default(0) @db.Decimal(12, 2)
+  /// Valor que o vendedor deve repassar à empresa (bruto − comissão, ou igual ao bruto).
+  valorSaldoRepasse        Decimal            @default(0) @db.Decimal(12, 2)
+  formaPagamento           String?
+  statusFinanceiro         StatusFinanceiro   @default(PENDENTE)
+  observacoes              String?
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime           @updatedAt
+
+  vendedor                 Seller             @relation(fields: [vendedorId], references: [id])
+  produto                  Product            @relation(fields: [produtoId], references: [id])
+  movimentacaoDaVenda      MovimentacaoEstoque?
+
+  @@index([vendedorId])
+  @@index([createdAt])
+}
+
+model Recebimento {
+  id             String   @id @default(cuid())
+  vendedorId     String
+  valorRecebido  Decimal  @db.Decimal(12, 2)
+  formaPagamento String
+  observacoes    String?
+  createdAt      DateTime @default(now())
+
+  vendedor Seller @relation(fields: [vendedorId], references: [id])
+
+  @@index([vendedorId])
+  @@index([createdAt])
+}

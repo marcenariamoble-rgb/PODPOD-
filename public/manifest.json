@@ -1,0 +1,32 @@
+{
+  "id": "podpod-vendedor",
+  "name": "PodPod",
+  "short_name": "PodPod",
+  "description": "App do vendedor PodPod — estoque, vendas e devoluções.",
+  "start_url": "/vendedor",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0f0014",
+  "theme_color": "#a020f0",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

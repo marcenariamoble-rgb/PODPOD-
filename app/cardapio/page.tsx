@@ -1,0 +1,208 @@
+import Link from "next/link";
+import Image from "next/image";
+import { Package } from "lucide-react";
+import { listProdutosCardapio } from "@/lib/data/cardapio";
+import { Badge } from "@/components/ui/badge";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Field, nativeSelectClassName } from "@/components/forms/form-field";
+import { formatBRL } from "@/lib/utils/format";
+import { cn } from "@/lib/utils";
+import { PedirCardapioButton } from "@/components/cardapio/pedir-cardapio-button";
+
+function isPublicImageUrl(url: string) {
+  return (
+    url.startsWith("/") ||
+    url.startsWith("https://") ||
+    url.startsWith("http://")
+  );
+}
+
+export default async function CardapioPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; categoria?: string }>;
+}) {
+  const sp = await searchParams;
+  const q = (sp.q ?? "").trim().toLowerCase();
+  const catFiltro = (sp.categoria ?? "").trim();
+
+  const todos = await listProdutosCardapio();
+  const categorias = Array.from(
+    new Set(todos.map((p) => p.categoria || "Outros"))
+  ).sort((a, b) => a.localeCompare(b, "pt-BR"));
+
+  let filtrados = todos;
+  if (q) {
+    filtrados = filtrados.filter((p) => {
+      const blob = `${p.nome} ${p.marca} ${p.sabor} ${p.sku} ${p.categoria}`.toLowerCase();
+      return blob.includes(q);
+    });
+  }
+  if (catFiltro) {
+    filtrados = filtrados.filter((p) => (p.categoria || "Outros") === catFiltro);
+  }
+
+  const grupos = new Map<string, typeof filtrados>();
+  for (const p of filtrados) {
+    const c = p.categoria || "Outros";
+    if (!grupos.has(c)) grupos.set(c, []);
+    grupos.get(c)!.push(p);
+  }
+  const ordemCats = Array.from(grupos.keys()).sort((a, b) =>
+    a.localeCompare(b, "pt-BR")
+  );
+
+  return (
+    <div className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6">
+      <div className="mb-8 space-y-2">
+        <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">
+          Produtos e preços
+        </h1>
+        <p className="text-sm font-medium text-muted-foreground">
+          Consulte o catálogo atualizado. Filtre por nome, SKU ou categoria.
+        </p>
+      </div>
+
+      <form
+        method="get"
+        className="mb-8 flex flex-col gap-3 rounded-2xl border border-border/70 bg-card p-4 shadow-[var(--shadow-card)] sm:flex-row sm:flex-wrap sm:items-end"
+      >
+        <Field label="Procurar" htmlFor="cardapio-q" className="min-w-[200px] flex-1">
+          <input
+            id="cardapio-q"
+            name="q"
+            type="search"
+            defaultValue={sp.q ?? ""}
+            placeholder="Nome, marca, SKU…"
+            className={nativeSelectClassName}
+          />
+        </Field>
+        <Field label="Categoria" htmlFor="cardapio-cat" className="min-w-[180px]">
+          <select
+            id="cardapio-cat"
+            name="categoria"
+            defaultValue={catFiltro}
+            className={nativeSelectClassName}
+          >
+            <option value="">Todas</option>
+            {categorias.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <div className="flex flex-wrap gap-2">
+          <Button type="submit" className="rounded-xl font-semibold">
+            Filtrar
+          </Button>
+          <Link
+            href="/cardapio"
+            className={cn(
+              buttonVariants({ variant: "ghost", size: "default" }),
+              "rounded-xl font-semibold text-primary"
+            )}
+          >
+            Limpar
+          </Link>
+        </div>
+      </form>
+
+      {filtrados.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border/80 bg-muted/20 px-6 py-12 text-center">
+          <p className="font-medium text-muted-foreground">
+            Nenhum produto encontrado com estes filtros.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-10">
+          {ordemCats.map((categoria, idx) => {
+            const itens = grupos.get(categoria) ?? [];
+            const headingId = `cardapio-cat-${idx}`;
+            return (
+              <section key={categoria} aria-labelledby={headingId}>
+                <h2
+                  id={headingId}
+                  className="mb-4 border-b border-border/60 pb-2 font-heading text-lg font-semibold tracking-tight"
+                >
+                  {categoria}
+                </h2>
+                <ul className="grid gap-3 sm:grid-cols-2">
+                  {itens.map((p) => {
+                    const foto = p.fotoUrl?.trim();
+                    const showImg = foto && isPublicImageUrl(foto);
+                    const label = `${p.nome} — ${p.marca}${p.sabor ? ` (${p.sabor})` : ""}`;
+                    return (
+                      <li
+                        key={p.id}
+                        className="flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm transition-shadow hover:shadow-md"
+                      >
+                        <div className="relative aspect-[4/3] w-full bg-muted/40">
+                          {showImg ? (
+                            foto!.startsWith("/") ? (
+                              <Image
+                                src={foto!}
+                                alt={p.nome}
+                                fill
+                                className="object-cover"
+                                sizes="(max-width: 640px) 100vw, 50vw"
+                              />
+                            ) : (
+                              // eslint-disable-next-line @next/next/no-img-element -- URLs externas arbitrárias
+                              <img
+                                src={foto!}
+                                alt={p.nome}
+                                className="h-full w-full object-cover"
+                              />
+                            )
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                              <Package className="size-14 opacity-40" strokeWidth={1.25} />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex flex-1 flex-col p-4">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="font-semibold leading-snug text-foreground">
+                                {p.nome}
+                              </p>
+                              <p className="mt-0.5 text-xs text-muted-foreground">
+                                {p.marca}
+                                {p.sabor ? ` · ${p.sabor}` : null}
+                              </p>
+                              <p className="mt-1 font-mono text-[11px] text-muted-foreground">
+                                SKU {p.sku}
+                              </p>
+                            </div>
+                            <Badge
+                              variant={p.disponivel ? "success" : "secondary"}
+                              className="shrink-0 rounded-lg font-semibold"
+                            >
+                              {p.disponivel ? "Disponível" : "Indisponível"}
+                            </Badge>
+                          </div>
+                          <div className="mt-3 flex flex-wrap items-end justify-between gap-2 border-t border-border/50 pt-3">
+                            <div>
+                              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                Preço sugerido
+                              </p>
+                              <p className="font-heading text-xl font-bold tabular-nums text-primary">
+                                {formatBRL(p.precoVendaSugerido)}
+                              </p>
+                            </div>
+                            <PedirCardapioButton productId={p.id} productLabel={label} />
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
