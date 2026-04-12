@@ -5,8 +5,12 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  /// Ligação normal (ex.: Neon **com pooler** — boa para a app em serverless).
+  url       = env("DATABASE_URL")
+  /// Ligação **direta** ao Postgres (sem pooler). O Prisma usa isto em `migrate deploy`
+  /// para locks de migração; o pooler costuma dar timeout (P1002) nas migrações.
+  directUrl = env("DIRECT_URL")
 }
 
 enum Role {
