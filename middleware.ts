@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { auth } from "@/lib/auth.edge";
 import { isAdminRoute, isVendedorArea } from "@/lib/routes";
 
 /**
- * Usa o mesmo `auth()` do NextAuth v5 que as Server Components.
- * O antigo `getToken` do JWT podia divergir na Vercel e causar loop:
- * /login via `auth()` via sessão → /dashboard → middleware sem token → /login…
+ * Usa `auth` de `auth.edge` (sem Prisma) — compatível com Edge.
+ * Importar `auth` de `lib/auth.ts` puxa Prisma e pode anular a sessão no middleware.
  */
 export default auth((req) => {
   const path = req.nextUrl.pathname;
