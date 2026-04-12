@@ -10,7 +10,9 @@ export type CardapioProduto = {
   sku: string;
   precoVendaSugerido: number;
   fotoUrl: string | null;
-  /** Disponível para venda (há stock no depósito) — só sim/não para o visitante. */
+  /** Stock no depósito (central). */
+  estoqueCentral: number;
+  /** Disponível para pedido no cardápio (stock central > 0). */
   disponivel: boolean;
 };
 
@@ -39,6 +41,7 @@ export async function listProdutosCardapio(): Promise<CardapioProduto[]> {
     sku: p.sku,
     precoVendaSugerido: Number(p.precoVendaSugerido),
     fotoUrl: p.fotoUrl,
+    estoqueCentral: p.estoqueCentral,
     disponivel: p.estoqueCentral > 0,
   }));
 }

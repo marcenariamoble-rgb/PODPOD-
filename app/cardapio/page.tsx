@@ -191,7 +191,12 @@ export default async function CardapioPage({
                                 {formatBRL(p.precoVendaSugerido)}
                               </p>
                             </div>
-                            <PedirCardapioButton productId={p.id} productLabel={label} />
+                            <PedirCardapioButton
+                              productId={p.id}
+                              productLabel={label}
+                              disponivel={p.disponivel}
+                              estoqueCentral={p.estoqueCentral}
+                            />
                           </div>
                         </div>
                       </li>

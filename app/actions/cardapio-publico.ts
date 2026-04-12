@@ -49,10 +49,22 @@ export async function actionPedirCardapio(
 
   const prod = await prisma.product.findFirst({
     where: { id: productId, ativo: true },
-    select: { id: true },
+    select: { id: true, estoqueCentral: true },
   });
   if (!prod) {
     return { ok: false, message: "Este produto não está disponível no cardápio." };
+  }
+  if (prod.estoqueCentral < 1) {
+    return {
+      ok: false,
+      message: "Este produto não tem stock no depósito e não pode ser pedido pelo cardápio.",
+    };
+  }
+  if (quantidade > prod.estoqueCentral) {
+    return {
+      ok: false,
+      message: `Quantidade acima do disponível (máx. ${prod.estoqueCentral} un.).`,
+    };
   }
 
   const criada = await prisma.solicitacaoCardapio.create({

@@ -22,11 +22,16 @@ import { Textarea } from "@/components/ui/textarea";
 type Props = {
   productId: string;
   productLabel: string;
+  /** Só permite pedir quando há stock no depósito (alinhado com o cardápio público). */
+  disponivel: boolean;
+  /** Stock central atual (para limitar quantidade no formulário). */
+  estoqueCentral: number;
 };
 
 function PedirCardapioForm({
   productId,
   productLabel,
+  estoqueCentral,
   onCancel,
   onSuccess,
 }: Props & { onCancel: () => void; onSuccess: () => void }) {
@@ -51,7 +56,7 @@ function PedirCardapioForm({
           name="quantidade"
           type="number"
           min={1}
-          max={99}
+          max={Math.min(99, estoqueCentral)}
           defaultValue={1}
           required
         />
@@ -107,11 +112,17 @@ function PedirCardapioForm({
   );
 }
 
-export function PedirCardapioButton({ productId, productLabel }: Props) {
+export function PedirCardapioButton({
+  productId,
+  productLabel,
+  disponivel,
+  estoqueCentral,
+}: Props) {
   const [open, setOpen] = useState(false);
   const [formKey, setFormKey] = useState(0);
 
   const handleOpenChange = (next: boolean) => {
+    if (!disponivel) return;
     setOpen(next);
     if (next) setFormKey((k) => k + 1);
   };
@@ -120,6 +131,21 @@ export function PedirCardapioButton({ productId, productLabel }: Props) {
   const onSuccess = useCallback(() => {
     window.setTimeout(() => setOpen(false), 1600);
   }, []);
+
+  if (!disponivel) {
+    return (
+      <Button
+        type="button"
+        size="sm"
+        variant="secondary"
+        className="cursor-not-allowed rounded-xl font-semibold opacity-80"
+        disabled
+        title="Sem stock no depósito — não é possível pedir pelo cardápio"
+      >
+        Indisponível
+      </Button>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -142,6 +168,8 @@ export function PedirCardapioButton({ productId, productLabel }: Props) {
           key={formKey}
           productId={productId}
           productLabel={productLabel}
+          disponivel={disponivel}
+          estoqueCentral={estoqueCentral}
           onCancel={onCancel}
           onSuccess={onSuccess}
         />
