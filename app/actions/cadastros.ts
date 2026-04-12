@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { uploadProductPhotoFromForm } from "@/lib/upload-product-image";
 import { ComissaoVendedorTipo, Prisma, Role } from "@prisma/client";
 
 async function requireUserId() {
@@ -133,8 +134,12 @@ export async function actionCreateProduct(formData: FormData) {
   }
 
   const ativo = String(formData.get("ativo") ?? "true") === "true";
-  const fotoUrlRaw = String(formData.get("fotoUrl") ?? "").trim();
-  const fotoUrl = fotoUrlRaw || null;
+
+  const upload = await uploadProductPhotoFromForm(formData.get("foto"));
+  if (!upload.ok) {
+    redirect("/produtos/novo?error=" + encodeURIComponent(upload.message));
+  }
+  const fotoUrl = upload.url;
 
   try {
     await prisma.product.create({
@@ -191,8 +196,13 @@ export async function actionUpdateProduct(formData: FormData) {
   }
 
   const ativo = String(formData.get("ativo") ?? "true") === "true";
-  const fotoUrlRaw = String(formData.get("fotoUrl") ?? "").trim();
-  const fotoUrl = fotoUrlRaw || null;
+
+  const upload = await uploadProductPhotoFromForm(formData.get("foto"));
+  if (!upload.ok) {
+    redirect(`/produtos/${id}?error=` + encodeURIComponent(upload.message));
+  }
+  const fotoUrlPreserve = String(formData.get("fotoUrl") ?? "").trim() || null;
+  const fotoUrl = upload.url ?? fotoUrlPreserve;
 
   try {
     await prisma.product.update({

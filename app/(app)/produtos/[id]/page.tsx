@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { Badge } from "@/components/ui/badge";
@@ -134,8 +135,13 @@ export default async function ProdutoDetalhePage({
             </span>
           </CardHeader>
           <CardContent>
-            <form action={actionUpdateProduct} className="space-y-3">
+            <form
+              action={actionUpdateProduct}
+              encType="multipart/form-data"
+              className="space-y-3"
+            >
               <input type="hidden" name="id" value={product.id} />
+              <input type="hidden" name="fotoUrl" value={product.fotoUrl ?? ""} />
               <Field label="Nome" htmlFor="nome">
                 <Input id="nome" name="nome" required defaultValue={product.nome} />
               </Field>
@@ -151,16 +157,38 @@ export default async function ProdutoDetalhePage({
               <Field label="SKU" htmlFor="sku">
                 <Input id="sku" name="sku" required defaultValue={product.sku} />
               </Field>
-              <Field label="URL da foto (cardápio público)" htmlFor="fotoUrl">
+              {product.fotoUrl ? (
+                <div className="relative aspect-[4/3] w-full max-w-xs overflow-hidden rounded-xl border border-border bg-muted/30">
+                  {product.fotoUrl.startsWith("/") ? (
+                    <Image
+                      src={product.fotoUrl}
+                      alt="Foto atual"
+                      fill
+                      className="object-cover"
+                      sizes="320px"
+                    />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element -- URL externa (ex.: Blob)
+                    <img
+                      src={product.fotoUrl}
+                      alt="Foto atual"
+                      className="h-full w-full object-cover"
+                    />
+                  )}
+                </div>
+              ) : null}
+              <Field label="Nova foto (cardápio público)" htmlFor="foto">
                 <Input
-                  id="fotoUrl"
-                  name="fotoUrl"
-                  type="url"
-                  inputMode="url"
-                  defaultValue={product.fotoUrl ?? ""}
-                  placeholder="https://… ou /caminho/em/public"
+                  id="foto"
+                  name="foto"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-1.5 file:text-sm file:font-medium"
                 />
               </Field>
+              <p className="-mt-1 text-xs font-medium text-muted-foreground">
+                Deixe em branco para manter a foto atual. JPG, PNG, WebP ou GIF — até 5 MB.
+              </p>
               <div className="grid gap-3 sm:grid-cols-2">
                 <Field label="Custo unit. (R$)" htmlFor="custoUnitario">
                   <Input

@@ -43,7 +43,11 @@ export default async function NovoProdutoPage({
           <CardTitle className="text-lg font-semibold">Dados do produto</CardTitle>
         </CardHeader>
         <CardContent>
-          <form action={actionCreateProduct} className="space-y-4">
+          <form
+            action={actionCreateProduct}
+            encType="multipart/form-data"
+            className="space-y-4"
+          >
             <Field label="Nome" htmlFor="nome">
               <Input id="nome" name="nome" required placeholder="Ex.: Pod Mint Ice" />
             </Field>
@@ -67,18 +71,18 @@ export default async function NovoProdutoPage({
                 placeholder="Deixe vazio para gerar automaticamente"
               />
             </Field>
-            <Field
-              label="URL da foto (cardápio público)"
-              htmlFor="fotoUrl"
-            >
+            <Field label="Foto (cardápio público)" htmlFor="foto">
               <Input
-                id="fotoUrl"
-                name="fotoUrl"
-                type="url"
-                inputMode="url"
-                placeholder="https://… ou /caminho/em/public"
+                id="foto"
+                name="foto"
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-1.5 file:text-sm file:font-medium"
               />
             </Field>
+            <p className="-mt-2 text-xs font-medium text-muted-foreground">
+              JPG, PNG, WebP ou GIF — até 5 MB. Opcional.
+            </p>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Custo unitário (R$)" htmlFor="custoUnitario">
                 <Input
