@@ -21,3 +21,19 @@ export function buildWhatsAppMeUrl(
   }
   return null;
 }
+
+/**
+ * Dígitos só, formato internacional, para a API do WhatsApp Cloud (campo `to`).
+ * Ex.: (11) 98765-4321 → 5511987654321
+ */
+export function toWhatsAppApiRecipientDigits(
+  phone: string | null | undefined
+): string | null {
+  if (!phone?.trim()) return null;
+  const d = phone.replace(/\D/g, "");
+  if (d.length < 8) return null;
+  if (d.startsWith("55") && d.length >= 12) return d;
+  if (d.length >= 10 && d.length <= 11) return `55${d}`;
+  if (d.length >= 10) return d;
+  return null;
+}

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useCallback, useState } from "react";
 import { signOut } from "next-auth/react";
 import {
   Home,
@@ -16,13 +17,30 @@ import {
 import { PodPodMark } from "@/components/brand/podpod-mark";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { VendedorPedidosCardapioPoller } from "@/components/vendedor/vendedor-pedidos-cardapio-poller";
+import { VendedorNotificacoesOptIn } from "@/components/vendedor/vendedor-notificacoes-opt-in";
 
 const nav = [
   { href: "/vendedor", label: "Início", icon: Home, end: true },
+  {
+    href: "/vendedor/pedidos-cardapio",
+    label: "Pedidos",
+    icon: Bell,
+    pedidosBadge: true as const,
+  },
   { href: "/vendedor/estoque", label: "Estoque", icon: Package },
   { href: "/vendedor/vender", label: "Vender", icon: ShoppingCart },
   { href: "/vendedor/devolver", label: "Devolver", icon: Undo2 },
 ];
+
+function navItemActive(pathname: string, href: string, end?: boolean) {
+  if (href === "/vendedor") return pathname === "/vendedor";
+  if (href === "/vendedor/pedidos-cardapio") {
+    return pathname.startsWith("/vendedor/pedidos-cardapio");
+  }
+  if (end) return pathname === href;
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
 
 export function VendedorShell({
   children,
@@ -33,9 +51,17 @@ export function VendedorShell({
   notificacoesCardapioNaoLidas?: number;
 }) {
   const pathname = usePathname();
+  const [pedidosNaoLidos, setPedidosNaoLidos] = useState(notificacoesCardapioNaoLidas);
+  const onPedidosCount = useCallback((n: number) => {
+    setPedidosNaoLidos(n);
+  }, []);
 
   return (
     <div className="flex min-h-dvh flex-col bg-background pb-[calc(5rem+env(safe-area-inset-bottom))]">
+      <VendedorPedidosCardapioPoller
+        initialCount={notificacoesCardapioNaoLidas}
+        onCount={onPedidosCount}
+      />
       <header className="sticky top-0 z-20 border-b border-border/70 bg-card/95 px-4 py-3 shadow-sm backdrop-blur-lg">
         <div className="mx-auto flex max-w-lg items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-3">
@@ -56,11 +82,9 @@ export function VendedorShell({
               title="Pedidos do cardápio"
             >
               <Bell className="size-[18px] text-primary" strokeWidth={2.25} />
-              {notificacoesCardapioNaoLidas > 0 ? (
+              {pedidosNaoLidos > 0 ? (
                 <span className="absolute -right-0.5 -top-0.5 flex h-[1.125rem] min-w-[1.125rem] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold leading-none text-destructive-foreground">
-                  {notificacoesCardapioNaoLidas > 99
-                    ? "99+"
-                    : notificacoesCardapioNaoLidas}
+                  {pedidosNaoLidos > 99 ? "99+" : pedidosNaoLidos}
                 </span>
               ) : null}
               <span className="max-[380px]:sr-only">Pedidos</span>
@@ -93,33 +117,43 @@ export function VendedorShell({
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-lg flex-1 px-4 py-5">{children}</main>
+      <main className="mx-auto w-full max-w-lg flex-1 px-4 py-5">
+        <VendedorNotificacoesOptIn />
+        {children}
+      </main>
 
       <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-border/70 bg-card/95 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_28px_oklch(0.25_0.04_285_/_0.08)] backdrop-blur-xl">
-        <div className="mx-auto flex max-w-lg justify-around px-1">
+        <div className="mx-auto flex max-w-lg justify-around gap-0.5 px-0.5">
           {nav.map((item) => {
             const Icon = item.icon;
-            const active = item.end
-              ? pathname === item.href
-              : pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const active = navItemActive(
+              pathname,
+              item.href,
+              "end" in item ? item.end : undefined
+            );
+            const showPedidosDot =
+              "pedidosBadge" in item && item.pedidosBadge && pedidosNaoLidos > 0;
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex min-w-[4.25rem] flex-col items-center gap-1 rounded-xl py-2 text-[10px] font-semibold transition-colors",
+                  "flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl py-2 text-[10px] font-semibold leading-tight transition-colors",
                   active ? "text-primary" : "text-muted-foreground"
                 )}
               >
                 <span
                   className={cn(
-                    "flex size-11 items-center justify-center rounded-2xl transition-all",
+                    "relative flex size-11 items-center justify-center rounded-2xl transition-all",
                     active
                       ? "bg-primary text-primary-foreground shadow-[var(--shadow-soft)]"
                       : "bg-muted/80"
                   )}
                 >
                   <Icon className="size-[20px]" strokeWidth={active ? 2.25 : 2} />
+                  {showPedidosDot ? (
+                    <span className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full border-2 border-card bg-destructive" />
+                  ) : null}
                 </span>
                 {item.label}
               </Link>

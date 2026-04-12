@@ -1,17 +1,21 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { getVendedorPortalResumo } from "@/lib/data/vendedor-portal";
+import { countNotificacoesCardapioNaoLidas } from "@/lib/data/cardapio-notificacoes";
 import { formatBRL, formatInt } from "@/lib/utils/format";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Package, TrendingUp, Wallet } from "lucide-react";
+import { Bell, Package, TrendingUp, Wallet } from "lucide-react";
 import { PodPodEmptyHint } from "@/components/brand/podpod-empty-hint";
 
 export default async function VendedorHomePage() {
   const session = await auth();
   const sellerId = session!.user.sellerId!;
-  const { seller, stocks, fin, unidades } = await getVendedorPortalResumo(sellerId);
+  const [{ seller, stocks, fin, unidades }, pedidosNovos] = await Promise.all([
+    getVendedorPortalResumo(sellerId),
+    countNotificacoesCardapioNaoLidas(sellerId),
+  ]);
 
   const pendente = fin.saldoPendente > 0;
 
@@ -25,6 +29,32 @@ export default async function VendedorHomePage() {
           Resumo da sua operação
         </p>
       </div>
+
+      {pedidosNovos > 0 ? (
+        <Link
+          href="/vendedor/pedidos-cardapio"
+          className={cn(
+            "flex items-center justify-between gap-3 rounded-2xl border border-primary/35 bg-primary/[0.07] px-4 py-3 shadow-sm transition-colors hover:bg-primary/[0.1]"
+          )}
+        >
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+              <Bell className="size-5" strokeWidth={2.25} />
+            </span>
+            <div className="min-w-0">
+              <p className="font-semibold text-foreground">
+                {pedidosNovos === 1
+                  ? "Novo pedido no cardápio"
+                  : `${pedidosNovos} novos pedidos no cardápio`}
+              </p>
+              <p className="text-xs font-medium text-muted-foreground">
+                Abra para ver o contacto e falar com o cliente no WhatsApp.
+              </p>
+            </div>
+          </div>
+          <Badge className="shrink-0 rounded-lg font-semibold">Ver</Badge>
+        </Link>
+      ) : null}
 
       <div className="grid gap-3">
         <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-[var(--shadow-card)]">

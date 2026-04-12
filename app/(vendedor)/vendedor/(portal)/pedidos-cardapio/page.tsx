@@ -38,8 +38,7 @@ export default async function VendedorPedidosCardapioPage() {
           Pedidos do cardápio
         </h1>
         <p className="mt-1 text-sm font-medium text-muted-foreground">
-          Avisos de pedidos feitos pelos clientes no cardápio público. Use o
-          WhatsApp para falar com o contacto.
+          Quando chegar um aviso, pode abrir o WhatsApp do cliente pelo botão em cada pedido.
         </p>
       </div>
 
@@ -126,7 +125,7 @@ export default async function VendedorPedidosCardapioPage() {
                       )}
                     >
                       <MessageCircle className="size-4" strokeWidth={2.25} />
-                      WhatsApp
+                      WhatsApp do cliente
                     </a>
                   ) : (
                     <span className="text-xs font-medium text-muted-foreground">

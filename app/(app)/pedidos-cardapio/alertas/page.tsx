@@ -26,8 +26,8 @@ export default async function PedidosCardapioAlertasPage() {
           </h1>
           <p className="mt-2 max-w-xl text-sm font-medium text-muted-foreground">
             Escolha quem recebe um alerta na área do vendedor sempre que alguém
-            pedir um produto pelo cardápio público. O vendedor pode abrir o
-            WhatsApp do cliente a partir do aviso.
+            pedir um produto pelo cardápio público. O vendedor recebe aviso no
+            portal e pode abrir o WhatsApp do cliente em Pedidos do cardápio.
           </p>
         </div>
       </div>
