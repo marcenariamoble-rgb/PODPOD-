@@ -11,6 +11,7 @@ import {
   LogOut,
   BookOpen,
   Bell,
+  KeyRound,
 } from "lucide-react";
 import { PodPodMark } from "@/components/brand/podpod-mark";
 import { cn } from "@/lib/utils";
@@ -70,6 +71,13 @@ export function VendedorShell({
             >
               <BookOpen className="size-4" />
               Cardápio
+            </Link>
+            <Link
+              href="/vendedor/conta/senha"
+              className="inline-flex h-10 items-center justify-center rounded-xl border border-border/80 bg-card px-2.5 font-semibold text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground"
+              title="Alterar senha"
+            >
+              <KeyRound className="size-[18px]" strokeWidth={2.25} />
             </Link>
             <Button
               type="button"

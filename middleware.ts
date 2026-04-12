@@ -29,6 +29,8 @@ export default auth((req) => {
   const isLogin = path === "/login";
   const isOffline = path === "/vendedor/offline";
   const isCardapioPublico = path === "/cardapio" || path.startsWith("/cardapio/");
+  const isPasswordRecovery =
+    path === "/forgot-password" || path === "/reset-password";
 
   if (logged && isLogin) {
     const cb = req.nextUrl.searchParams.get("callbackUrl");
@@ -46,7 +48,7 @@ export default auth((req) => {
     );
   }
 
-  if (!logged && !isLogin && !isOffline && !isCardapioPublico) {
+  if (!logged && !isLogin && !isOffline && !isCardapioPublico && !isPasswordRecovery) {
     const url = new URL("/login", req.url);
     url.searchParams.set("callbackUrl", path + req.nextUrl.search);
     return NextResponse.redirect(url);

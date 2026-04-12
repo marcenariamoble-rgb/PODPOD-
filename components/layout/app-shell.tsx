@@ -22,6 +22,7 @@ import {
   Landmark,
   BookOpen,
   ClipboardList,
+  UserCog,
 } from "lucide-react";
 import { PodPodMark } from "@/components/brand/podpod-mark";
 import { cn } from "@/lib/utils";
@@ -42,6 +43,7 @@ const mainNav = [
   { href: "/financeiro", label: "Financeiro", icon: Landmark },
   { href: "/produtos", label: "Produtos", icon: Package },
   { href: "/vendedores", label: "Vendedores", icon: Users },
+  { href: "/usuarios", label: "Utilizadores", icon: UserCog },
   { href: "/comodato/estoque", label: "Em comodato", icon: Boxes },
   { href: "/movimentacoes", label: "Movimentações", icon: ArrowLeftRight },
   { href: "/relatorios", label: "Relatórios", icon: FileBarChart },
@@ -176,7 +178,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           ))}
           <SidebarQuickOps />
         </nav>
-        <div className="shrink-0 border-t border-sidebar-border/70 p-2.5">
+        <div className="shrink-0 space-y-2 border-t border-sidebar-border/70 p-2.5">
+          <Link
+            href="/conta/senha"
+            className="flex h-9 w-full items-center justify-center rounded-lg border border-border/70 bg-card/40 text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground"
+          >
+            Alterar senha
+          </Link>
           <Button
             variant="outline"
             size="sm"

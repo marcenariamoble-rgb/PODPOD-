@@ -3,6 +3,8 @@ export const ADMIN_ROUTE_PREFIXES = [
   "/dashboard",
   "/produtos",
   "/vendedores",
+  "/usuarios",
+  "/conta",
   "/movimentacoes",
   "/relatorios",
   "/comodato",
