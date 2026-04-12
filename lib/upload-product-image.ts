@@ -11,6 +11,27 @@ const MIME_EXT: Record<string, string> = {
   "image/gif": "gif",
 };
 
+const EXT_FROM_NAME: Record<string, string> = {
+  jpg: "jpg",
+  jpeg: "jpg",
+  png: "png",
+  webp: "webp",
+  gif: "gif",
+};
+
+function extFromFileName(name: string): string | undefined {
+  const m = /\.([a-z0-9]+)$/i.exec(name.trim());
+  if (!m) return undefined;
+  return EXT_FROM_NAME[m[1].toLowerCase()];
+}
+
+function resolveImageExt(file: File): string | undefined {
+  const fromMime = MIME_EXT[file.type];
+  if (fromMime) return fromMime;
+  if (file.name) return extFromFileName(file.name);
+  return undefined;
+}
+
 function isNonEmptyFile(file: unknown): file is File {
   return typeof File !== "undefined" && file instanceof File && file.size > 0;
 }
@@ -30,8 +51,7 @@ export async function uploadProductPhotoFromForm(
     return { ok: true, url: null };
   }
 
-  const mime = file.type;
-  const ext = MIME_EXT[mime];
+  const ext = resolveImageExt(file);
   if (!ext) {
     return {
       ok: false,
@@ -45,11 +65,20 @@ export async function uploadProductPhotoFromForm(
   const name = `p-${Date.now()}-${randomBytes(6).toString("hex")}.${ext}`;
 
   if (process.env.BLOB_READ_WRITE_TOKEN) {
-    const blob = await put(`products/${name}`, file, {
-      access: "public",
-      addRandomSuffix: false,
-    });
-    return { ok: true, url: blob.url };
+    try {
+      const blob = await put(`products/${name}`, file, {
+        access: "public",
+        addRandomSuffix: false,
+      });
+      return { ok: true, url: blob.url };
+    } catch (e) {
+      console.error("[upload-product-image] Blob put failed:", e);
+      return {
+        ok: false,
+        message:
+          "Não foi possível enviar a foto ao armazenamento. Confirme a Loja Blob na Vercel e faça redeploy.",
+      };
+    }
   }
 
   if (process.env.VERCEL === "1") {
@@ -60,9 +89,17 @@ export async function uploadProductPhotoFromForm(
     };
   }
 
-  const dir = join(process.cwd(), "public", "uploads", "products");
-  await mkdir(dir, { recursive: true });
-  const buf = Buffer.from(await file.arrayBuffer());
-  await writeFile(join(dir, name), buf);
-  return { ok: true, url: `/uploads/products/${name}` };
+  try {
+    const dir = join(process.cwd(), "public", "uploads", "products");
+    await mkdir(dir, { recursive: true });
+    const buf = Buffer.from(await file.arrayBuffer());
+    await writeFile(join(dir, name), buf);
+    return { ok: true, url: `/uploads/products/${name}` };
+  } catch (e) {
+    console.error("[upload-product-image] local write failed:", e);
+    return {
+      ok: false,
+      message: "Não foi possível guardar a foto. Tente outra imagem ou verifique permissões da pasta.",
+    };
+  }
 }

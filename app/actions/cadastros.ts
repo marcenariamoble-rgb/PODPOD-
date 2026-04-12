@@ -10,7 +10,7 @@ import { ComissaoVendedorTipo, Prisma, Role } from "@prisma/client";
 async function requireUserId() {
   const session = await auth();
   const id = session?.user?.id;
-  if (!id) throw new Error("Não autenticado.");
+  if (!id) redirect("/login");
   return id;
 }
 
