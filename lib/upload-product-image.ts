@@ -32,6 +32,12 @@ function resolveImageExt(file: File): string | undefined {
   return undefined;
 }
 
+/** MIME correcto para o Blob (evita rejeição por content-type na loja). */
+function mimeForImageExt(ext: string): string {
+  if (ext === "jpg") return "image/jpeg";
+  return `image/${ext}`;
+}
+
 function isNonEmptyFile(file: unknown): file is File {
   return typeof File !== "undefined" && file instanceof File && file.size > 0;
 }
@@ -66,13 +72,27 @@ export async function uploadProductPhotoFromForm(
 
   if (process.env.BLOB_READ_WRITE_TOKEN) {
     try {
-      const blob = await put(`products/${name}`, file, {
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const contentType = mimeForImageExt(ext);
+      const blob = await put(`products/${name}`, buffer, {
         access: "public",
         addRandomSuffix: false,
+        contentType,
       });
       return { ok: true, url: blob.url };
     } catch (e) {
       console.error("[upload-product-image] Blob put failed:", e);
+      const errMsg = e instanceof Error ? e.message : "";
+      if (
+        errMsg.includes("contentType") ||
+        errMsg.toLowerCase().includes("not allowed")
+      ) {
+        return {
+          ok: false,
+          message:
+            "A Loja Blob não aceita este tipo de ficheiro. No painel da loja (Vercel → Storage → Blob), permita tipos de imagem ou remova restrições de content-type.",
+        };
+      }
       return {
         ok: false,
         message:
