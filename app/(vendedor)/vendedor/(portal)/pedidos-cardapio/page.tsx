@@ -5,7 +5,10 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { MessageCircle } from "lucide-react";
 import { listNotificacoesCardapioVendedor } from "@/lib/data/cardapio-notificacoes";
-import { buildWhatsAppMeUrl } from "@/lib/utils/whatsapp";
+import {
+  buildMensagemPrimeiroContactoCardapio,
+  buildWhatsAppMeUrl,
+} from "@/lib/utils/whatsapp";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -69,7 +72,13 @@ export default async function VendedorPedidosCardapioPage() {
       ) : (
         <ul className="space-y-3">
           {itens.map((n) => {
-            const wa = buildWhatsAppMeUrl(n.telefone);
+            const wa = buildWhatsAppMeUrl(n.telefone, {
+              text: buildMensagemPrimeiroContactoCardapio({
+                nomeContato: n.nomeContato,
+                produtoNome: n.produtoNome,
+                quantidade: n.quantidade,
+              }),
+            });
             const contacto =
               [n.nomeContato, n.telefone].filter(Boolean).join(" · ") || "—";
             return (

@@ -17,7 +17,10 @@ import {
   actionMarcarTodosPedidosCardapioVisualizados,
 } from "@/app/actions/pedidos-cardapio";
 import { MessageCircle } from "lucide-react";
-import { buildWhatsAppMeUrl } from "@/lib/utils/whatsapp";
+import {
+  buildMensagemPrimeiroContactoCardapio,
+  buildWhatsAppMeUrl,
+} from "@/lib/utils/whatsapp";
 import { cn } from "@/lib/utils";
 
 export default async function PedidosCardapioPage() {
@@ -97,7 +100,13 @@ export default async function PedidosCardapioPage() {
             </TableHeader>
             <TableBody>
               {rows.map((r) => {
-                const waUrl = buildWhatsAppMeUrl(r.telefone);
+                const waUrl = buildWhatsAppMeUrl(r.telefone, {
+                  text: buildMensagemPrimeiroContactoCardapio({
+                    nomeContato: r.nomeContato,
+                    produtoNome: r.produto.nome,
+                    quantidade: r.quantidade,
+                  }),
+                });
                 return (
                 <TableRow key={r.id}>
                   <TableCell className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">

@@ -2,11 +2,31 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
+import { Role } from "@prisma/client";
 
 async function notificarVendedoresPedidoCardapio(solicitacaoCardapioId: string) {
-  const destinos = await prisma.cardapioAlertaVendedor.findMany({
+  const destinosConfigurados = await prisma.cardapioAlertaVendedor.findMany({
+    where: {
+      seller: {
+        ativo: true,
+        user: { is: { role: Role.VENDEDOR, ativo: true } },
+      },
+    },
     select: { sellerId: true },
   });
+
+  // Resiliência: se ninguém estiver configurado, notifica todos os vendedores com login ativo.
+  const destinos =
+    destinosConfigurados.length > 0
+      ? destinosConfigurados
+      : await prisma.seller.findMany({
+          where: {
+            ativo: true,
+            user: { is: { role: Role.VENDEDOR, ativo: true } },
+          },
+          select: { id: true },
+        }).then((rows) => rows.map((r) => ({ sellerId: r.id })));
+
   if (destinos.length === 0) return;
   await prisma.notificacaoSolicitacaoCardapio.createMany({
     data: destinos.map((d) => ({
