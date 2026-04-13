@@ -14,14 +14,14 @@ export default async function VendedorEstoquePage() {
           Meu estoque
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Produtos atualmente em sua posse
+          Quantidades que tem consigo neste momento
         </p>
       </div>
 
       {rows.length === 0 ? (
         <PodPodEmptyHint>
-          Nenhum produto em posse no momento. Peça uma entrega em comodato ao
-          responsável pela operação.
+          Nenhum produto em posse no momento. Peça uma entrega em comodato à
+          equipa.
         </PodPodEmptyHint>
       ) : (
         <ul className="space-y-3">

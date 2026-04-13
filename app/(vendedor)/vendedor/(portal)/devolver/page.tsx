@@ -18,7 +18,7 @@ export default async function VendedorDevolverPage() {
           Devolução
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Devolva unidades ao estoque central
+          Devolva unidades que ainda tem consigo
         </p>
       </div>
 

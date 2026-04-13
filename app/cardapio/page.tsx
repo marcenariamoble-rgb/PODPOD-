@@ -20,16 +20,20 @@ function isPublicImageUrl(url: string) {
 export default async function CardapioPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; categoria?: string }>;
+  searchParams: Promise<{ q?: string; categoria?: string; marca?: string }>;
 }) {
   const sp = await searchParams;
   const q = (sp.q ?? "").trim().toLowerCase();
   const catFiltro = (sp.categoria ?? "").trim();
+  const marcaFiltro = (sp.marca ?? "").trim();
 
   const todos = await listProdutosCardapio();
   const categorias = Array.from(
     new Set(todos.map((p) => p.categoria || "Outros"))
   ).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  const marcas = Array.from(new Set(todos.map((p) => p.marca).filter(Boolean))).sort(
+    (a, b) => a.localeCompare(b, "pt-BR")
+  );
 
   let filtrados = todos;
   if (q) {
@@ -37,6 +41,9 @@ export default async function CardapioPage({
       const blob = `${p.nome} ${p.marca} ${p.sabor} ${p.sku} ${p.categoria}`.toLowerCase();
       return blob.includes(q);
     });
+  }
+  if (marcaFiltro) {
+    filtrados = filtrados.filter((p) => p.marca === marcaFiltro);
   }
   if (catFiltro) {
     filtrados = filtrados.filter((p) => (p.categoria || "Outros") === catFiltro);
@@ -59,7 +66,7 @@ export default async function CardapioPage({
           Produtos e preços
         </h1>
         <p className="text-sm font-medium text-muted-foreground">
-          Consulte o catálogo atualizado. Filtre por nome, SKU ou categoria.
+          Consulte o catálogo atualizado. Filtre por marca, categoria ou texto (nome, SKU…).
         </p>
       </div>
 
@@ -76,6 +83,21 @@ export default async function CardapioPage({
             placeholder="Nome, marca, SKU…"
             className={nativeSelectClassName}
           />
+        </Field>
+        <Field label="Marca" htmlFor="cardapio-marca" className="min-w-[160px]">
+          <select
+            id="cardapio-marca"
+            name="marca"
+            defaultValue={marcaFiltro}
+            className={nativeSelectClassName}
+          >
+            <option value="">Todas</option>
+            {marcas.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
         </Field>
         <Field label="Categoria" htmlFor="cardapio-cat" className="min-w-[180px]">
           <select

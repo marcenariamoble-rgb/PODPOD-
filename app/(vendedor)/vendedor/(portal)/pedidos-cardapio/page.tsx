@@ -59,9 +59,8 @@ export default async function VendedorPedidosCardapioPage() {
       {itens.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border/80 bg-muted/20 px-4 py-10 text-center">
           <p className="text-sm font-medium text-muted-foreground">
-            Ainda não há notificações de pedidos do cardápio para si. O
-            administrador pode ativar alertas em Pedidos do cardápio →
-            Notificações para vendedores.
+            Ainda não há pedidos do cardápio para si. Se esperava receber avisos,
+            peça à equipa para activar as notificações do seu utilizador.
           </p>
         </div>
       ) : (
@@ -81,8 +80,8 @@ export default async function VendedorPedidosCardapioPage() {
                 )}
               >
                 <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div>
-                    <p className="font-semibold leading-snug text-foreground">
+                  <div className="min-w-0 flex-1 pr-1">
+                    <p className="break-words font-semibold leading-snug text-foreground">
                       {n.produtoNome}
                     </p>
                     <p className="mt-0.5 font-mono text-xs text-muted-foreground">
@@ -103,7 +102,7 @@ export default async function VendedorPedidosCardapioPage() {
                   {format(n.createdAt, "d MMM yyyy · HH:mm", { locale: ptBR })} · Qtd.{" "}
                   <span className="font-semibold text-foreground">{n.quantidade}</span>
                 </p>
-                <p className="mt-2 text-sm text-foreground">
+                <p className="mt-2 break-words text-sm text-foreground">
                   <span className="font-medium text-muted-foreground">Contacto: </span>
                   {contacto}
                 </p>

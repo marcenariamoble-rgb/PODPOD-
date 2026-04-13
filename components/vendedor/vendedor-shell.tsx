@@ -57,28 +57,28 @@ export function VendedorShell({
   }, []);
 
   return (
-    <div className="flex min-h-dvh flex-col bg-background pb-[calc(5rem+env(safe-area-inset-bottom))]">
+    <div className="flex min-h-dvh flex-col bg-background pb-[calc(6.25rem+env(safe-area-inset-bottom))]">
       <VendedorPedidosCardapioPoller
         initialCount={notificacoesCardapioNaoLidas}
         onCount={onPedidosCount}
       />
-      <header className="sticky top-0 z-20 border-b border-border/70 bg-card/95 px-4 py-3 shadow-sm backdrop-blur-lg">
-        <div className="mx-auto flex max-w-lg items-center justify-between gap-2">
-          <div className="flex min-w-0 items-center gap-3">
-            <PodPodMark variant="nav" className="h-10 w-10 shrink-0" />
+      <header className="sticky top-0 z-20 border-b border-border/70 bg-card/95 px-3 py-2.5 shadow-sm backdrop-blur-lg sm:px-4 sm:py-3">
+        <div className="mx-auto flex max-w-lg flex-wrap items-center justify-between gap-x-2 gap-y-2">
+          <div className="flex min-w-0 max-w-[min(100%,14rem)] items-center gap-2 sm:max-w-none sm:gap-3">
+            <PodPodMark variant="nav" className="h-9 w-9 shrink-0 sm:h-10 sm:w-10" />
             <div className="min-w-0">
-              <p className="font-heading text-lg font-bold tracking-tight text-foreground">
+              <p className="font-heading text-base font-bold tracking-tight text-foreground sm:text-lg">
                 PodPod
               </p>
-              <p className="text-xs font-medium text-muted-foreground">
-                Área do vendedor
+              <p className="truncate text-[11px] font-medium text-muted-foreground sm:text-xs">
+                O seu painel
               </p>
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+          <div className="flex min-w-0 flex-[1_1_auto] items-center justify-end gap-1 sm:flex-none sm:gap-1.5 sm:gap-2">
             <Link
               href="/vendedor/pedidos-cardapio"
-              className="relative inline-flex h-10 min-w-10 items-center justify-center gap-1 rounded-xl border border-border/80 bg-card px-2.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted/80"
+              className="relative inline-flex h-10 min-w-10 shrink-0 items-center justify-center gap-1 rounded-xl border border-border/80 bg-card px-2 text-xs font-semibold text-foreground transition-colors hover:bg-muted/80 sm:px-2.5"
               title="Pedidos do cardápio"
             >
               <Bell className="size-[18px] text-primary" strokeWidth={2.25} />
@@ -87,31 +87,33 @@ export function VendedorShell({
                   {pedidosNaoLidos > 99 ? "99+" : pedidosNaoLidos}
                 </span>
               ) : null}
-              <span className="max-[380px]:sr-only">Pedidos</span>
+              <span className="hidden sm:inline">Pedidos</span>
             </Link>
             <Link
               href="/cardapio"
-              className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-primary/25 bg-primary/5 px-3 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+              className="inline-flex h-10 shrink-0 items-center gap-1 rounded-xl border border-primary/25 bg-primary/5 px-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/10 sm:gap-1.5 sm:px-3"
+              title="Ver cardápio público"
             >
-              <BookOpen className="size-4" />
-              Cardápio
+              <BookOpen className="size-4 shrink-0" />
+              <span className="hidden min-[380px]:inline">Cardápio</span>
             </Link>
             <Link
               href="/vendedor/conta/senha"
-              className="inline-flex h-10 items-center justify-center rounded-xl border border-border/80 bg-card px-2.5 font-semibold text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground"
+              className="inline-flex h-10 min-w-10 shrink-0 items-center justify-center gap-1 rounded-xl border border-border/80 bg-card px-2 font-semibold text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground"
               title="Alterar senha"
             >
-              <KeyRound className="size-[18px]" strokeWidth={2.25} />
+              <KeyRound className="size-[18px] shrink-0" strokeWidth={2.25} />
+              <span className="hidden text-xs sm:inline">Senha</span>
             </Link>
             <Button
               type="button"
               variant="outline"
               size="sm"
-              className="h-10 gap-1.5 rounded-xl border-border/80 px-3 font-semibold"
+              className="h-10 shrink-0 gap-1 rounded-xl border-border/80 px-2 font-semibold sm:gap-1.5 sm:px-3"
               onClick={() => signOut({ callbackUrl: "/login" })}
             >
-              <LogOut className="size-4" />
-              Sair
+              <LogOut className="size-4 shrink-0" />
+              <span className="hidden sm:inline">Sair</span>
             </Button>
           </div>
         </div>
@@ -138,24 +140,26 @@ export function VendedorShell({
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl py-2 text-[10px] font-semibold leading-tight transition-colors",
+                  "flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl py-1.5 text-[9px] font-semibold leading-[1.15] transition-colors sm:gap-1 sm:py-2 sm:text-[10px] sm:leading-tight",
                   active ? "text-primary" : "text-muted-foreground"
                 )}
               >
                 <span
                   className={cn(
-                    "relative flex size-11 items-center justify-center rounded-2xl transition-all",
+                    "relative flex size-10 shrink-0 items-center justify-center rounded-2xl transition-all sm:size-11",
                     active
                       ? "bg-primary text-primary-foreground shadow-[var(--shadow-soft)]"
                       : "bg-muted/80"
                   )}
                 >
-                  <Icon className="size-[20px]" strokeWidth={active ? 2.25 : 2} />
+                  <Icon className="size-[18px] sm:size-[20px]" strokeWidth={active ? 2.25 : 2} />
                   {showPedidosDot ? (
                     <span className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full border-2 border-card bg-destructive" />
                   ) : null}
                 </span>
-                {item.label}
+                <span className="max-w-[4.25rem] text-center [overflow-wrap:anywhere] sm:max-w-[5rem]">
+                  {item.label}
+                </span>
               </Link>
             );
           })}

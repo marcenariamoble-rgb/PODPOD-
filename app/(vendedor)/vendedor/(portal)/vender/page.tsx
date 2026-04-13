@@ -19,14 +19,14 @@ export default async function VendedorVenderPage() {
           Nova venda
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Registre a venda a partir do seu estoque em posse
+          Use o que tem em posse para lançar a venda ao cliente
         </p>
       </div>
 
       {rows.length === 0 ? (
         <PodPodEmptyHint>
           Sem unidades em posse para vender. Aguarde uma entrega em comodato ou
-          fale com a operação.
+          fale com a equipa.
         </PodPodEmptyHint>
       ) : (
         <form action={actionVendaPortal} className="space-y-5">
