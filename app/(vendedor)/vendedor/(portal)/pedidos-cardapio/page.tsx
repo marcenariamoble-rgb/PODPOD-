@@ -40,6 +40,9 @@ export default async function VendedorPedidosCardapioPage() {
         <p className="mt-1 text-sm font-medium text-muted-foreground">
           Quando chegar um aviso, pode abrir o WhatsApp do cliente pelo botão em cada pedido.
         </p>
+        <p className="mt-1 text-xs font-medium text-muted-foreground">
+          O pedido não baixa seu estoque. A baixa só acontece ao confirmar a venda.
+        </p>
       </div>
 
       {naoLidas > 0 ? (
@@ -113,6 +116,15 @@ export default async function VendedorPedidosCardapioPage() {
                   </p>
                 ) : null}
                 <div className="mt-3 flex flex-wrap gap-2">
+                  <Link
+                    href={`/vendedor/vender?productId=${encodeURIComponent(n.produtoId)}&quantidade=${encodeURIComponent(String(n.quantidade))}`}
+                    className={cn(
+                      buttonVariants({ variant: "outline", size: "sm" }),
+                      "rounded-xl font-semibold"
+                    )}
+                  >
+                    Efetivar venda
+                  </Link>
                   {wa ? (
                     <a
                       href={wa}

@@ -50,6 +50,7 @@ export type NotificacaoCardapioVendedorItem = {
   lida: boolean;
   createdAt: Date;
   solicitacaoId: string;
+  produtoId: string;
   quantidade: number;
   nomeContato: string | null;
   telefone: string | null;
@@ -78,6 +79,7 @@ export async function listNotificacoesCardapioVendedor(
     lida: r.lida,
     createdAt: r.createdAt,
     solicitacaoId: r.solicitacaoCardapioId,
+    produtoId: r.solicitacao.productId,
     quantidade: r.solicitacao.quantidade,
     nomeContato: r.solicitacao.nomeContato,
     telefone: r.solicitacao.telefone,

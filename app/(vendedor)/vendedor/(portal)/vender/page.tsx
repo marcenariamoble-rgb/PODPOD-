@@ -8,9 +8,26 @@ import { Field, nativeSelectClassName } from "@/components/forms/form-field";
 import { formatBRL } from "@/lib/utils/format";
 import { PodPodEmptyHint } from "@/components/brand/podpod-empty-hint";
 
-export default async function VendedorVenderPage() {
+export default async function VendedorVenderPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ productId?: string; quantidade?: string }>;
+}) {
   const session = await auth();
   const rows = await listProdutosEmPosse(session!.user.sellerId!);
+  const sp = await searchParams;
+  const prefillProductId = (sp.productId ?? "").trim();
+  const prefillRow = rows.find((r) => r.product.id === prefillProductId) ?? null;
+  const qtdRaw = Number(sp.quantidade ?? "1");
+  const prefillQuantidade = prefillRow
+    ? Math.max(
+        1,
+        Math.min(
+          prefillRow.quantidade,
+          Number.isFinite(qtdRaw) ? Math.floor(qtdRaw) : 1
+        )
+      )
+    : 1;
 
   return (
     <div className="space-y-5">
@@ -30,11 +47,18 @@ export default async function VendedorVenderPage() {
         </PodPodEmptyHint>
       ) : (
         <form action={actionVendaPortal} className="space-y-5">
+          {prefillRow ? (
+            <p className="rounded-xl border border-primary/25 bg-primary/[0.06] px-3 py-2 text-xs font-medium text-foreground">
+              Pedido do cardápio carregado: <strong>{prefillRow.product.nome}</strong>. O
+              estoque só baixa ao confirmar esta venda.
+            </p>
+          ) : null}
           <Field label="Produto" htmlFor="productId">
             <select
               id="productId"
               name="productId"
               required
+              defaultValue={prefillRow ? prefillRow.product.id : ""}
               className={nativeSelectClassName}
             >
               <option value="">Selecione…</option>
@@ -54,6 +78,7 @@ export default async function VendedorVenderPage() {
               name="quantidade"
               type="number"
               min={1}
+              defaultValue={prefillQuantidade}
               required
             />
           </Field>
