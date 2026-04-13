@@ -39,7 +39,10 @@ export default async function VendedorDevolverPage() {
               <option value="">Selecione…</option>
               {rows.map((r) => (
                 <option key={r.id} value={r.product.id}>
-                  {r.product.nome} — máx. {r.quantidade} u.
+                  {r.product.nome}
+                  {r.product.marca ? ` · ${r.product.marca}` : ""}
+                  {r.product.sabor ? ` · ${r.product.sabor}` : ""}
+                  {` — máx. ${r.quantidade} u.`}
                 </option>
               ))}
             </select>

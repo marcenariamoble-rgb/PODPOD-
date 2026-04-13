@@ -40,8 +40,10 @@ export default async function VendedorVenderPage() {
               <option value="">Selecione…</option>
               {rows.map((r) => (
                 <option key={r.id} value={r.product.id}>
-                  {r.product.nome} — {r.quantidade} u. (sug.{" "}
-                  {formatBRL(Number(r.product.precoVendaSugerido))})
+                  {r.product.nome}
+                  {r.product.marca ? ` · ${r.product.marca}` : ""}
+                  {r.product.sabor ? ` · ${r.product.sabor}` : ""}
+                  {` — ${r.quantidade} u. (sug. ${formatBRL(Number(r.product.precoVendaSugerido))})`}
                 </option>
               ))}
             </select>

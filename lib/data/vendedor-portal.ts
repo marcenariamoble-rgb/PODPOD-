@@ -9,7 +9,11 @@ export async function getVendedorPortalResumo(sellerId: string) {
     }),
     prisma.sellerProductStock.findMany({
       where: { sellerId, quantidade: { gt: 0 } },
-      include: { product: { select: { id: true, nome: true, sku: true } } },
+      include: {
+        product: {
+          select: { id: true, nome: true, marca: true, sabor: true, sku: true },
+        },
+      },
       orderBy: { product: { nome: "asc" } },
     }),
     getSellerFinancialTotals(sellerId),
@@ -28,6 +32,8 @@ export async function listProdutosEmPosse(sellerId: string) {
         select: {
           id: true,
           nome: true,
+          marca: true,
+          sabor: true,
           sku: true,
           precoVendaSugerido: true,
         },

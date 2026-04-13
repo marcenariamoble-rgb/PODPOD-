@@ -179,6 +179,10 @@ export default async function ComodatoEstoquePage({
                     >
                       {row.product.nome}
                     </Link>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {row.product.marca}
+                      {row.product.sabor ? ` · ${row.product.sabor}` : ""}
+                    </p>
                   </TableCell>
                   <TableCell className="hidden font-mono text-xs sm:table-cell">
                     {row.product.sku}

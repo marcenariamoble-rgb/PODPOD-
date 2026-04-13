@@ -31,6 +31,10 @@ export default async function VendedorEstoquePage() {
               className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm"
             >
               <p className="font-semibold leading-snug">{r.product.nome}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {r.product.marca}
+                {r.product.sabor ? ` · ${r.product.sabor}` : ""}
+              </p>
               <p className="mt-0.5 font-mono text-xs text-muted-foreground">
                 {r.product.sku}
               </p>

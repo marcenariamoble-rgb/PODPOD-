@@ -5,14 +5,21 @@ export async function listProdutosAtivos() {
   return prisma.product.findMany({
     where: { ativo: true },
     orderBy: { nome: "asc" },
-    select: { id: true, nome: true, sku: true, estoqueCentral: true },
+    select: {
+      id: true,
+      nome: true,
+      marca: true,
+      sabor: true,
+      sku: true,
+      estoqueCentral: true,
+    },
   });
 }
 
 export async function listProdutosParaFiltro() {
   return prisma.product.findMany({
     orderBy: { nome: "asc" },
-    select: { id: true, nome: true, sku: true },
+    select: { id: true, nome: true, marca: true, sabor: true, sku: true },
   });
 }
 
