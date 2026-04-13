@@ -10,9 +10,11 @@ import { useEffect, useRef } from "react";
 export function VendedorPedidosCardapioPoller({
   initialCount,
   onCount,
+  onIncrease,
 }: {
   initialCount: number;
   onCount: (n: number) => void;
+  onIncrease?: (next: number, prev: number) => void;
 }) {
   const lastRef = useRef(initialCount);
 
@@ -36,6 +38,7 @@ export function VendedorPedidosCardapioPoller({
         const count = typeof data.count === "number" ? data.count : lastRef.current;
         const prev = lastRef.current;
         if (count > prev) {
+          onIncrease?.(count, prev);
           if (typeof navigator !== "undefined" && "vibrate" in navigator) {
             navigator.vibrate?.([100, 40, 100]);
           }
@@ -86,7 +89,7 @@ export function VendedorPedidosCardapioPoller({
       clearInterval(id);
       document.removeEventListener("visibilitychange", onVis);
     };
-  }, [onCount]);
+  }, [onCount, onIncrease]);
 
   return null;
 }

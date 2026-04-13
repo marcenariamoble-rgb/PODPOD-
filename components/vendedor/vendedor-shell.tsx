@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { signOut } from "next-auth/react";
 import {
   Home,
@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { PodPodMark } from "@/components/brand/podpod-mark";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { VendedorPedidosCardapioPoller } from "@/components/vendedor/vendedor-pedidos-cardapio-poller";
 import { VendedorNotificacoesOptIn } from "@/components/vendedor/vendedor-notificacoes-opt-in";
 
@@ -52,16 +52,46 @@ export function VendedorShell({
 }) {
   const pathname = usePathname();
   const [pedidosNaoLidos, setPedidosNaoLidos] = useState(notificacoesCardapioNaoLidas);
+  const [showNovoPedidoAlert, setShowNovoPedidoAlert] = useState(false);
   const onPedidosCount = useCallback((n: number) => {
     setPedidosNaoLidos(n);
   }, []);
+  const onPedidosIncrease = useCallback(() => {
+    setShowNovoPedidoAlert(true);
+  }, []);
+
+  useEffect(() => {
+    if (!showNovoPedidoAlert) return;
+    const id = window.setTimeout(() => setShowNovoPedidoAlert(false), 12000);
+    return () => window.clearTimeout(id);
+  }, [showNovoPedidoAlert]);
 
   return (
     <div className="flex min-h-dvh flex-col bg-background pb-[calc(6.25rem+env(safe-area-inset-bottom))]">
       <VendedorPedidosCardapioPoller
         initialCount={notificacoesCardapioNaoLidas}
         onCount={onPedidosCount}
+        onIncrease={onPedidosIncrease}
       />
+      {showNovoPedidoAlert ? (
+        <div className="sticky top-0 z-30 border-b border-primary/30 bg-primary/10 px-3 py-2 sm:px-4">
+          <div className="mx-auto flex max-w-lg items-center justify-between gap-3">
+            <p className="text-xs font-semibold text-foreground sm:text-sm">
+              Novo pedido recebido no cardápio.
+            </p>
+            <Link
+              href="/vendedor/pedidos-cardapio"
+              className={cn(
+                buttonVariants({ size: "sm" }),
+                "h-8 rounded-lg px-3 text-xs font-semibold"
+              )}
+              onClick={() => setShowNovoPedidoAlert(false)}
+            >
+              Abrir
+            </Link>
+          </div>
+        </div>
+      ) : null}
       <header className="sticky top-0 z-20 border-b border-border/70 bg-card/95 px-3 py-2.5 shadow-sm backdrop-blur-lg sm:px-4 sm:py-3">
         <div className="mx-auto flex max-w-lg flex-wrap items-center justify-between gap-x-2 gap-y-2">
           <div className="flex min-w-0 max-w-[min(100%,14rem)] items-center gap-2 sm:max-w-none sm:gap-3">
