@@ -40,7 +40,11 @@ export async function actionVendaPortal(formData: FormData) {
     .map((n) => (Number.isFinite(n) ? n : 0));
   const valores = formData
     .getAll("valorUnitario")
-    .map((v) => Number(String(v ?? "").replace(",", ".")))
+    .map((v) => {
+      const raw = String(v ?? "").trim().replace(",", ".");
+      if (raw === "") return Number.NaN;
+      return Number(raw);
+    })
     .map((n) => (Number.isFinite(n) ? n : NaN));
 
   const itens = produtos
@@ -50,6 +54,16 @@ export async function actionVendaPortal(formData: FormData) {
       valorUnitario: valores[i] ?? NaN,
     }))
     .filter((i) => i.productId && i.quantidade > 0);
+
+  if (itens.some((i) => !Number.isFinite(i.valorUnitario) || i.valorUnitario < 0)) {
+    redirect(
+      withParam(
+        redirectAfter,
+        "error",
+        "Informe o valor unitário para todos os itens preenchidos."
+      )
+    );
+  }
 
   if (itens.length === 0) {
     redirect(withParam(redirectAfter, "error", "Informe ao menos um item para venda."));

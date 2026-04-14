@@ -101,7 +101,11 @@ export default async function NovaVendaPage({
             <VendaLoteItensFields
               options={produtos.map((p) => ({
                 value: p.id,
-                label: `${p.nome} (${p.sku})`,
+                label:
+                  `${p.nome}` +
+                  `${p.marca ? ` · ${p.marca}` : ""}` +
+                  `${p.sabor ? ` · ${p.sabor}` : ""}` +
+                  ` (${p.sku})`,
               }))}
               initialRows={4}
               sellerSelectId="vendedorId"
