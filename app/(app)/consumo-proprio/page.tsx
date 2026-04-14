@@ -7,6 +7,9 @@ import { cn } from "@/lib/utils";
 import { Field, nativeSelectClassName } from "@/components/forms/form-field";
 import { Button } from "@/components/ui/button";
 import { formatBRL, formatInt } from "@/lib/utils/format";
+import { FormErrorBanner } from "@/components/forms/form-error-banner";
+import { FormSuccessBanner } from "@/components/forms/form-success-banner";
+import { EstornarVendaButton } from "@/components/vendas/estornar-venda-button";
 import {
   Table,
   TableBody,
@@ -35,7 +38,13 @@ function parseDateEnd(raw: string | undefined, fallback: Date): Date {
 export default async function ConsumoProprioAdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ vendedorId?: string; from?: string; to?: string }>;
+  searchParams: Promise<{
+    vendedorId?: string;
+    from?: string;
+    to?: string;
+    ok?: string;
+    error?: string;
+  }>;
 }) {
   const sp = await searchParams;
   const now = new Date();
@@ -44,6 +53,11 @@ export default async function ConsumoProprioAdminPage({
   const from = parseDateStart(sp.from, fromDefault);
   const to = parseDateEnd(sp.to, toDefault);
   const vendedorId = (sp.vendedorId ?? "").trim() || undefined;
+  const qs = new URLSearchParams();
+  if (sp.vendedorId) qs.set("vendedorId", sp.vendedorId);
+  if (sp.from) qs.set("from", sp.from);
+  if (sp.to) qs.set("to", sp.to);
+  const redirectAfter = qs.size > 0 ? `/consumo-proprio?${qs.toString()}` : "/consumo-proprio";
 
   const [sellers, rows] = await Promise.all([
     prisma.seller.findMany({
@@ -87,6 +101,10 @@ export default async function ConsumoProprioAdminPage({
           Voltar para vendas
         </Link>
       </div>
+      <FormSuccessBanner
+        message={sp.ok === "estorno" ? "Consumo próprio excluído com sucesso." : null}
+      />
+      <FormErrorBanner message={sp.error ? decodeURIComponent(sp.error) : null} />
 
       <form
         method="get"
@@ -172,12 +190,13 @@ export default async function ConsumoProprioAdminPage({
               <TableHead className="text-right">Qtd</TableHead>
               <TableHead className="text-right">Custo unit.</TableHead>
               <TableHead className="text-right">Total</TableHead>
+              <TableHead className="w-[1%] text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="py-12 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={7} className="py-12 text-center text-sm text-muted-foreground">
                   Nenhum consumo próprio encontrado com estes filtros.
                 </TableCell>
               </TableRow>
@@ -210,6 +229,15 @@ export default async function ConsumoProprioAdminPage({
                   </TableCell>
                   <TableCell className="text-right tabular-nums font-semibold">
                     {formatBRL(Number(r.valorTotal))}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <EstornarVendaButton
+                      vendaId={r.id}
+                      summary={`Consumo próprio de ${r.vendedor.nome} · ${r.produto.nome} · ${r.quantidade} un. · ${formatBRL(Number(r.valorTotal))}`}
+                      redirectAfter={redirectAfter}
+                      quantidadeAlocadaCentral={0}
+                      actionLabel="Excluir"
+                    />
                   </TableCell>
                 </TableRow>
               ))
