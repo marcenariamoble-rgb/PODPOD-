@@ -7,8 +7,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, nativeSelectClassName } from "@/components/forms/form-field";
 import { listProdutosAtivos, listVendedoresAtivos } from "@/lib/data/catalog";
+import { FormErrorBanner } from "@/components/forms/form-error-banner";
+import { FormSuccessBanner } from "@/components/forms/form-success-banner";
 
-export default async function NovaVendaPage() {
+const LINHAS_LOTE = 8;
+
+export default async function NovaVendaPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; ok?: string }>;
+}) {
+  const { error, ok } = await searchParams;
   const [produtos, vendedores] = await Promise.all([
     listProdutosAtivos(),
     listVendedoresAtivos(),
@@ -38,14 +47,19 @@ export default async function NovaVendaPage() {
           Voltar
         </Link>
       </div>
+      <FormSuccessBanner
+        message={ok === "1" ? "Venda em lote registrada com sucesso." : null}
+      />
+      <FormErrorBanner message={error ? decodeURIComponent(error) : null} />
       <Card>
         <CardHeader>
           <CardTitle className="text-lg font-semibold">
-            Registrar venda do vendedor
+            Registrar venda em lote
           </CardTitle>
         </CardHeader>
         <CardContent>
           <form action={actionVenda} className="space-y-4">
+            <input type="hidden" name="redirectAfter" value="/vendas/nova" />
             <Field label="Vendedor" htmlFor="vendedorId">
               <select
                 id="vendedorId"
@@ -61,40 +75,33 @@ export default async function NovaVendaPage() {
                 ))}
               </select>
             </Field>
-            <Field label="Produto" htmlFor="productId">
-              <select
-                id="productId"
-                name="productId"
-                required
-                className={nativeSelectClassName}
-              >
-                <option value="">Selecione…</option>
-                {produtos.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nome} ({p.sku})
-                  </option>
+            <div className="rounded-xl border border-border/70 bg-muted/20 p-3">
+              <p className="mb-2 text-xs font-medium text-muted-foreground">
+                Preencha vários itens (linhas vazias são ignoradas).
+              </p>
+              <div className="space-y-2">
+                {Array.from({ length: LINHAS_LOTE }).map((_, idx) => (
+                  <div key={idx} className="grid gap-2 sm:grid-cols-[1fr_110px_150px]">
+                    <select name="productId" className={nativeSelectClassName}>
+                      <option value="">Produto #{idx + 1}</option>
+                      {produtos.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.nome} ({p.sku})
+                        </option>
+                      ))}
+                    </select>
+                    <Input name="quantidade" type="number" min={0} placeholder="Qtd" />
+                    <Input
+                      name="valorUnitario"
+                      type="number"
+                      step="0.01"
+                      min={0}
+                      placeholder="Valor unit."
+                    />
+                  </div>
                 ))}
-              </select>
-            </Field>
-            <Field label="Quantidade" htmlFor="quantidade">
-              <Input
-                id="quantidade"
-                name="quantidade"
-                type="number"
-                min={1}
-                required
-              />
-            </Field>
-            <Field label="Valor unitário (R$)" htmlFor="valorUnitario">
-              <Input
-                id="valorUnitario"
-                name="valorUnitario"
-                type="number"
-                step="0.01"
-                min={0}
-                required
-              />
-            </Field>
+              </div>
+            </div>
             <Field label="Forma de pagamento" htmlFor="formaPagamento">
               <Input
                 id="formaPagamento"
@@ -106,7 +113,7 @@ export default async function NovaVendaPage() {
               <Textarea id="observacoes" name="observacoes" rows={3} />
             </Field>
             <Button type="submit" className="h-11 w-full rounded-xl font-semibold">
-              Salvar venda
+              Salvar venda em lote
             </Button>
           </form>
         </CardContent>

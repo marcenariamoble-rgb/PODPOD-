@@ -7,11 +7,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Field, nativeSelectClassName } from "@/components/forms/form-field";
 import { formatBRL } from "@/lib/utils/format";
 import { PodPodEmptyHint } from "@/components/brand/podpod-empty-hint";
+import { FormErrorBanner } from "@/components/forms/form-error-banner";
+import { FormSuccessBanner } from "@/components/forms/form-success-banner";
+
+const LINHAS_LOTE = 8;
 
 export default async function VendedorVenderPage({
   searchParams,
 }: {
-  searchParams: Promise<{ productId?: string; quantidade?: string }>;
+  searchParams: Promise<{
+    productId?: string;
+    quantidade?: string;
+    ok?: string;
+    error?: string;
+  }>;
 }) {
   const session = await auth();
   const rows = await listProdutosEmPosse(session!.user.sellerId!);
@@ -33,12 +42,16 @@ export default async function VendedorVenderPage({
     <div className="space-y-5">
       <div>
         <h1 className="font-heading text-2xl font-bold tracking-tight">
-          Nova venda
+          Nova venda em lote
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Use o que tem em posse para lançar a venda ao cliente
+          Use o que tem em posse para lançar uma ou várias vendas
         </p>
       </div>
+      <FormSuccessBanner
+        message={sp.ok === "1" ? "Venda em lote registrada com sucesso." : null}
+      />
+      <FormErrorBanner message={sp.error ? decodeURIComponent(sp.error) : null} />
 
       {rows.length === 0 ? (
         <PodPodEmptyHint>
@@ -47,51 +60,53 @@ export default async function VendedorVenderPage({
         </PodPodEmptyHint>
       ) : (
         <form action={actionVendaPortal} className="space-y-5">
+          <input type="hidden" name="redirectAfter" value="/vendedor/vender" />
           {prefillRow ? (
             <p className="rounded-xl border border-primary/25 bg-primary/[0.06] px-3 py-2 text-xs font-medium text-foreground">
               Pedido do cardápio carregado: <strong>{prefillRow.product.nome}</strong>. O
               estoque só baixa ao confirmar esta venda.
             </p>
           ) : null}
-          <Field label="Produto" htmlFor="productId">
-            <select
-              id="productId"
-              name="productId"
-              required
-              defaultValue={prefillRow ? prefillRow.product.id : ""}
-              className={nativeSelectClassName}
-            >
-              <option value="">Selecione…</option>
-              {rows.map((r) => (
-                <option key={r.id} value={r.product.id}>
-                  {r.product.nome}
-                  {r.product.marca ? ` · ${r.product.marca}` : ""}
-                  {r.product.sabor ? ` · ${r.product.sabor}` : ""}
-                  {` — ${r.quantidade} u. (sug. ${formatBRL(Number(r.product.precoVendaSugerido))})`}
-                </option>
+          <div className="rounded-xl border border-border/70 bg-muted/20 p-3">
+            <p className="mb-2 text-xs font-medium text-muted-foreground">
+              Preencha vários itens (linhas vazias são ignoradas).
+            </p>
+            <div className="space-y-2">
+              {Array.from({ length: LINHAS_LOTE }).map((_, idx) => (
+                <div key={idx} className="grid gap-2 sm:grid-cols-[1fr_95px_135px]">
+                  <select
+                    name="productId"
+                    className={nativeSelectClassName}
+                    defaultValue={idx === 0 && prefillRow ? prefillRow.product.id : ""}
+                  >
+                    <option value="">Produto #{idx + 1}</option>
+                    {rows.map((r) => (
+                      <option key={r.id} value={r.product.id}>
+                        {r.product.nome}
+                        {r.product.marca ? ` · ${r.product.marca}` : ""}
+                        {r.product.sabor ? ` · ${r.product.sabor}` : ""}
+                        {` — ${r.quantidade} u. (sug. ${formatBRL(Number(r.product.precoVendaSugerido))})`}
+                      </option>
+                    ))}
+                  </select>
+                  <Input
+                    name="quantidade"
+                    type="number"
+                    min={0}
+                    defaultValue={idx === 0 ? prefillQuantidade : undefined}
+                    placeholder="Qtd"
+                  />
+                  <Input
+                    name="valorUnitario"
+                    type="number"
+                    step="0.01"
+                    min={0}
+                    placeholder="Valor unit."
+                  />
+                </div>
               ))}
-            </select>
-          </Field>
-          <Field label="Quantidade" htmlFor="quantidade">
-            <Input
-              id="quantidade"
-              name="quantidade"
-              type="number"
-              min={1}
-              defaultValue={prefillQuantidade}
-              required
-            />
-          </Field>
-          <Field label="Valor unitário (R$)" htmlFor="valorUnitario">
-            <Input
-              id="valorUnitario"
-              name="valorUnitario"
-              type="number"
-              step="0.01"
-              min={0}
-              required
-            />
-          </Field>
+            </div>
+          </div>
           <Field label="Forma de pagamento" htmlFor="formaPagamento">
             <Input
               id="formaPagamento"
@@ -106,7 +121,7 @@ export default async function VendedorVenderPage({
             type="submit"
             className="h-12 w-full rounded-2xl text-base font-semibold"
           >
-            Confirmar venda
+            Confirmar venda em lote
           </Button>
         </form>
       )}

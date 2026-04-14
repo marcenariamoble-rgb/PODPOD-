@@ -27,19 +27,57 @@ async function assertVendedorSession() {
 }
 
 export async function actionVendaPortal(formData: FormData) {
+  const redirectAfter =
+    String(formData.get("redirectAfter") ?? "/vendedor/vender").trim() ||
+    "/vendedor/vender";
   const { userId, sellerId } = await assertVendedorSession();
-  await registrarVenda({
-    vendedorId: sellerId,
-    productId: String(formData.get("productId") ?? ""),
-    quantidade: Number(formData.get("quantidade")),
-    valorUnitario: Number(formData.get("valorUnitario")),
-    formaPagamento: String(formData.get("formaPagamento") ?? "") || undefined,
-    observacoes: String(formData.get("observacoes") ?? "") || undefined,
-    usuarioId: userId,
-  });
+  const formaPagamento = String(formData.get("formaPagamento") ?? "") || undefined;
+  const observacoes = String(formData.get("observacoes") ?? "") || undefined;
+  const produtos = formData.getAll("productId").map((v) => String(v ?? "").trim());
+  const quantidades = formData
+    .getAll("quantidade")
+    .map((v) => Math.floor(Number(v)))
+    .map((n) => (Number.isFinite(n) ? n : 0));
+  const valores = formData
+    .getAll("valorUnitario")
+    .map((v) => Number(String(v ?? "").replace(",", ".")))
+    .map((n) => (Number.isFinite(n) ? n : NaN));
+
+  const itens = produtos
+    .map((productId, i) => ({
+      productId,
+      quantidade: quantidades[i] ?? 0,
+      valorUnitario: valores[i] ?? NaN,
+    }))
+    .filter((i) => i.productId && i.quantidade > 0);
+
+  if (itens.length === 0) {
+    redirect(withParam(redirectAfter, "error", "Informe ao menos um item para venda."));
+  }
+
+  try {
+    for (let i = 0; i < itens.length; i += 1) {
+      const item = itens[i];
+      await registrarVenda({
+        vendedorId: sellerId,
+        productId: item.productId,
+        quantidade: item.quantidade,
+        valorUnitario: item.valorUnitario,
+        formaPagamento,
+        observacoes: observacoes ? `[Lote ${i + 1}] ${observacoes}` : undefined,
+        usuarioId: userId,
+      });
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Não foi possível registrar a venda em lote.";
+    redirect(withParam(redirectAfter, "error", msg));
+  }
   revalidatePath("/vendedor");
   revalidatePath("/vendedor/estoque");
   revalidatePath("/vendedor/vender");
+  revalidatePath("/vendas");
+  revalidatePath("/financeiro");
+  redirect(withParam(redirectAfter, "ok", "1"));
 }
 
 export async function actionDevolucaoPortal(formData: FormData) {
