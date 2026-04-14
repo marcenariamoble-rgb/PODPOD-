@@ -62,7 +62,10 @@ export default async function SaidaManualPage({
                 <option value="">Selecione…</option>
                 {produtos.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.nome} ({p.sku}) — central: {p.estoqueCentral}
+                    {p.nome}
+                    {p.marca ? ` · ${p.marca}` : ""}
+                    {p.sabor ? ` · ${p.sabor}` : ""}
+                    {` (${p.sku}) — central: ${p.estoqueCentral}`}
                   </option>
                 ))}
               </select>
