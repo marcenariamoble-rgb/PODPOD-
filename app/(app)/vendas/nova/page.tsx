@@ -6,10 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, nativeSelectClassName } from "@/components/forms/form-field";
-import { listProdutosAtivos, listVendedoresAtivos } from "@/lib/data/catalog";
+import { listProdutosAtivos } from "@/lib/data/catalog";
 import { FormErrorBanner } from "@/components/forms/form-error-banner";
 import { FormSuccessBanner } from "@/components/forms/form-success-banner";
 import { VendaLoteItensFields } from "@/components/sales/venda-lote-itens-fields";
+import { prisma } from "@/lib/db";
+import { formatInt } from "@/lib/utils/format";
 
 export default async function NovaVendaPage({
   searchParams,
@@ -17,10 +19,26 @@ export default async function NovaVendaPage({
   searchParams: Promise<{ error?: string; ok?: string }>;
 }) {
   const { error, ok } = await searchParams;
-  const [produtos, vendedores] = await Promise.all([
+  const [produtos, vendedoresRaw] = await Promise.all([
     listProdutosAtivos(),
-    listVendedoresAtivos(),
+    prisma.seller.findMany({
+      where: { ativo: true },
+      orderBy: { nome: "asc" },
+      select: {
+        id: true,
+        nome: true,
+        sellerStocks: {
+          where: { quantidade: { gt: 0 } },
+          select: { quantidade: true },
+        },
+      },
+    }),
   ]);
+  const vendedores = vendedoresRaw.map((v) => ({
+    id: v.id,
+    nome: v.nome,
+    totalComodato: v.sellerStocks.reduce((acc, s) => acc + s.quantidade, 0),
+  }));
 
   return (
     <div className="mx-auto w-full max-w-lg space-y-6">
@@ -69,7 +87,7 @@ export default async function NovaVendaPage({
                 <option value="">Selecione…</option>
                 {vendedores.map((v) => (
                   <option key={v.id} value={v.id}>
-                    {v.nome}
+                    {v.nome} — em comodato: {formatInt(v.totalComodato)} u.
                   </option>
                 ))}
               </select>
