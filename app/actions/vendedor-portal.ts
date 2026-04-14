@@ -1,8 +1,18 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { registrarDevolucao, registrarVenda } from "@/lib/services/estoque.service";
+import {
+  registrarConsumoProprioVendedor,
+  registrarDevolucao,
+  registrarVenda,
+} from "@/lib/services/estoque.service";
+
+function withParam(path: string, key: string, value: string) {
+  const sep = path.includes("?") ? "&" : "?";
+  return `${path}${sep}${key}=${encodeURIComponent(value)}`;
+}
 
 async function assertVendedorSession() {
   const session = await auth();
@@ -44,4 +54,32 @@ export async function actionDevolucaoPortal(formData: FormData) {
   revalidatePath("/vendedor");
   revalidatePath("/vendedor/estoque");
   revalidatePath("/vendedor/devolver");
+}
+
+export async function actionConsumoProprioPortal(formData: FormData) {
+  const redirectAfter =
+    String(formData.get("redirectAfter") ?? "/vendedor/consumo-proprio").trim() ||
+    "/vendedor/consumo-proprio";
+  const { userId, sellerId } = await assertVendedorSession();
+  try {
+    await registrarConsumoProprioVendedor({
+      vendedorId: sellerId,
+      productId: String(formData.get("productId") ?? ""),
+      quantidade: Number(formData.get("quantidade")),
+      observacoes: String(formData.get("observacoes") ?? "") || undefined,
+      usuarioId: userId,
+    });
+  } catch (e) {
+    const msg =
+      e instanceof Error
+        ? e.message
+        : "Não foi possível registrar o consumo próprio.";
+    redirect(withParam(redirectAfter, "error", msg));
+  }
+  revalidatePath("/vendedor");
+  revalidatePath("/vendedor/estoque");
+  revalidatePath("/vendedor/consumo-proprio");
+  revalidatePath("/vendas");
+  revalidatePath("/financeiro");
+  redirect(withParam(redirectAfter, "ok", "1"));
 }

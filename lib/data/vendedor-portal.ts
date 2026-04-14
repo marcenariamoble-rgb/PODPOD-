@@ -35,6 +35,7 @@ export async function listProdutosEmPosse(sellerId: string) {
           marca: true,
           sabor: true,
           sku: true,
+          custoUnitario: true,
           precoVendaSugerido: true,
         },
       },

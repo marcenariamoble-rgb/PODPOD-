@@ -9,6 +9,7 @@ import {
   Package,
   ShoppingCart,
   Undo2,
+  Coffee,
   LogOut,
   BookOpen,
   Bell,
@@ -30,6 +31,7 @@ const nav = [
   },
   { href: "/vendedor/estoque", label: "Estoque", icon: Package },
   { href: "/vendedor/vender", label: "Vender", icon: ShoppingCart },
+  { href: "/vendedor/consumo-proprio", label: "Consumo", icon: Coffee },
   { href: "/vendedor/devolver", label: "Devolver", icon: Undo2 },
 ];
 

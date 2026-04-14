@@ -595,6 +595,85 @@ export async function registrarVenda(input: {
 }
 
 /**
+ * Consumo próprio do vendedor: baixa da posse do vendedor e gera cobrança pelo
+ * custo unitário do produto (sem comissão).
+ */
+export async function registrarConsumoProprioVendedor(input: {
+  vendedorId: string;
+  productId: string;
+  quantidade: number;
+  observacoes?: string;
+  usuarioId: string;
+}) {
+  const vendedorId = String(input.vendedorId ?? "").trim();
+  const productId = String(input.productId ?? "").trim();
+  const quantidade = Math.floor(Math.max(0, Number(input.quantidade)));
+  const observacoes = String(input.observacoes ?? "").trim();
+  const usuarioId = String(input.usuarioId ?? "").trim();
+
+  if (!vendedorId || !productId || !usuarioId) {
+    throw new Error("Dados inválidos para consumo próprio.");
+  }
+  if (!Number.isFinite(quantidade) || quantidade < 1) {
+    throw new Error("Quantidade inválida.");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const row = await tx.sellerProductStock.findUnique({
+      where: { sellerId_productId: { sellerId: vendedorId, productId } },
+      include: { product: true },
+    });
+    const emPosse = row?.quantidade ?? 0;
+    if (!row || emPosse < quantidade) {
+      throw new Error("Estoque em posse insuficiente para consumo próprio.");
+    }
+
+    await tx.sellerProductStock.update({
+      where: { sellerId_productId: { sellerId: vendedorId, productId } },
+      data: { quantidade: { decrement: quantidade } },
+    });
+
+    const valorUnitario = toNumber(row.product.custoUnitario);
+    const valorTotal = valorUnitario * quantidade;
+    const obs =
+      observacoes.length > 0
+        ? `[CONSUMO_PROPRIO] ${observacoes}`
+        : "[CONSUMO_PROPRIO]";
+
+    const venda = await tx.venda.create({
+      data: {
+        vendedorId,
+        produtoId: productId,
+        quantidade,
+        quantidadeAlocadaCentral: 0,
+        valorUnitario,
+        valorTotal,
+        valorComissaoRetida: 0,
+        valorSaldoRepasse: valorTotal,
+        formaPagamento: "CONSUMO_PROPRIO",
+        observacoes: obs,
+      },
+    });
+
+    await tx.movimentacaoEstoque.create({
+      data: {
+        tipoMovimentacao: TipoMovimentacao.VENDA,
+        produtoId: productId,
+        vendedorId,
+        quantidade,
+        valorUnitario,
+        valorTotal,
+        observacoes: obs,
+        usuarioResponsavelId: usuarioId,
+        vendaId: venda.id,
+      },
+    });
+  });
+
+  await recalcularStatusVendasVendedor(vendedorId);
+}
+
+/**
  * Remove o registro da venda e devolve o estoque (posse do vendedor + central
  * conforme a alocação gravada em `quantidadeAlocadaCentral`).
  * Vendas antigas com alocação 0 podem precisar de ajuste manual do central.
