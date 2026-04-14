@@ -22,10 +22,10 @@ import { Textarea } from "@/components/ui/textarea";
 type Props = {
   productId: string;
   productLabel: string;
-  /** Só permite pedir quando há stock no depósito (alinhado com o cardápio público). */
+  /** Só permite pedir quando há stock (depósito + comodato). */
   disponivel: boolean;
-  /** Stock central atual (para limitar quantidade no formulário). */
-  estoqueCentral: number;
+  /** Stock disponível para pedido (depósito + comodato). */
+  estoqueDisponivel: number;
   /** Código de indicação (URL `?codigo=` ou preenchimento manual). */
   codigoIndicacaoInicial?: string;
 };
@@ -33,7 +33,7 @@ type Props = {
 function PedirCardapioForm({
   productId,
   productLabel,
-  estoqueCentral,
+  estoqueDisponivel,
   codigoIndicacaoInicial,
   onCancel,
   onSuccess,
@@ -59,7 +59,7 @@ function PedirCardapioForm({
           name="quantidade"
           type="number"
           min={1}
-          max={Math.min(99, estoqueCentral)}
+          max={Math.min(99, estoqueDisponivel)}
           defaultValue={1}
           required
         />
@@ -131,7 +131,7 @@ export function PedirCardapioButton({
   productId,
   productLabel,
   disponivel,
-  estoqueCentral,
+  estoqueDisponivel,
   codigoIndicacaoInicial,
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -156,7 +156,7 @@ export function PedirCardapioButton({
         variant="secondary"
         className="cursor-not-allowed rounded-xl font-semibold opacity-80"
         disabled
-        title="Sem stock no depósito — não é possível pedir pelo cardápio"
+        title="Sem stock disponível (depósito + comodato) — não é possível pedir pelo cardápio"
       >
         Indisponível
       </Button>
@@ -185,7 +185,7 @@ export function PedirCardapioButton({
           productId={productId}
           productLabel={productLabel}
           disponivel={disponivel}
-          estoqueCentral={estoqueCentral}
+          estoqueDisponivel={estoqueDisponivel}
           codigoIndicacaoInicial={codigoIndicacaoInicial}
           onCancel={onCancel}
           onSuccess={onSuccess}

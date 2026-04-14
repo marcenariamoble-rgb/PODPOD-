@@ -260,7 +260,7 @@ export default async function CardapioPage({
                               productId={p.id}
                               productLabel={label}
                               disponivel={p.disponivel}
-                              estoqueCentral={p.estoqueCentral}
+                              estoqueDisponivel={p.estoqueDisponivelCardapio}
                               codigoIndicacaoInicial={codigoIndicacao}
                             />
                           </div>

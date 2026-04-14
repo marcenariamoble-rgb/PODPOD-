@@ -96,21 +96,31 @@ export async function actionPedirCardapio(
 
   const prod = await prisma.product.findFirst({
     where: { id: productId, ativo: true },
-    select: { id: true, estoqueCentral: true },
+    select: {
+      id: true,
+      estoqueCentral: true,
+      sellerStocks: {
+        where: { quantidade: { gt: 0 } },
+        select: { quantidade: true },
+      },
+    },
   });
   if (!prod) {
     return { ok: false, message: "Este produto não está disponível no cardápio." };
   }
-  if (prod.estoqueCentral < 1) {
+  const estoqueDisponivel =
+    prod.estoqueCentral + prod.sellerStocks.reduce((acc, s) => acc + s.quantidade, 0);
+  if (estoqueDisponivel < 1) {
     return {
       ok: false,
-      message: "Este produto não tem stock no depósito e não pode ser pedido pelo cardápio.",
+      message:
+        "Este produto não tem stock disponível neste momento (depósito + comodato).",
     };
   }
-  if (quantidade > prod.estoqueCentral) {
+  if (quantidade > estoqueDisponivel) {
     return {
       ok: false,
-      message: `Quantidade acima do disponível (máx. ${prod.estoqueCentral} un.).`,
+      message: `Quantidade acima do disponível (máx. ${estoqueDisponivel} un.).`,
     };
   }
 

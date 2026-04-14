@@ -12,7 +12,9 @@ export type CardapioProduto = {
   fotoUrl: string | null;
   /** Stock no depósito (central). */
   estoqueCentral: number;
-  /** Disponível para pedido no cardápio (stock central > 0). */
+  /** Stock total disponível para pedido (central + comodato). */
+  estoqueDisponivelCardapio: number;
+  /** Disponível para pedido no cardápio (central + comodato > 0). */
   disponivel: boolean;
 };
 
@@ -30,9 +32,15 @@ export async function listProdutosCardapio(): Promise<CardapioProduto[]> {
       precoVendaSugerido: true,
       fotoUrl: true,
       estoqueCentral: true,
+      sellerStocks: {
+        where: { quantidade: { gt: 0 } },
+        select: { quantidade: true },
+      },
     },
   });
   return rows.map((p) => ({
+    estoqueDisponivelCardapio:
+      p.estoqueCentral + p.sellerStocks.reduce((acc, s) => acc + s.quantidade, 0),
     id: p.id,
     nome: p.nome,
     marca: p.marca,
@@ -42,6 +50,7 @@ export async function listProdutosCardapio(): Promise<CardapioProduto[]> {
     precoVendaSugerido: Number(p.precoVendaSugerido),
     fotoUrl: p.fotoUrl,
     estoqueCentral: p.estoqueCentral,
-    disponivel: p.estoqueCentral > 0,
+    disponivel:
+      p.estoqueCentral + p.sellerStocks.reduce((acc, s) => acc + s.quantidade, 0) > 0,
   }));
 }

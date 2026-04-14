@@ -1,11 +1,15 @@
 import { auth } from "@/lib/auth";
-import { listProdutosEmPosse } from "@/lib/data/vendedor-portal";
+import { listMapaReposicaoRede, listProdutosEmPosse } from "@/lib/data/vendedor-portal";
 import { formatBRL } from "@/lib/utils/format";
 import { PodPodEmptyHint } from "@/components/brand/podpod-empty-hint";
 
 export default async function VendedorEstoquePage() {
   const session = await auth();
-  const rows = await listProdutosEmPosse(session!.user.sellerId!);
+  const sellerId = session!.user.sellerId!;
+  const [rows, rede] = await Promise.all([
+    listProdutosEmPosse(sellerId),
+    listMapaReposicaoRede(sellerId),
+  ]);
 
   return (
     <div className="space-y-4">
@@ -60,6 +64,47 @@ export default async function VendedorEstoquePage() {
           ))}
         </ul>
       )}
+
+      <div className="space-y-2">
+        <h2 className="font-heading text-lg font-semibold tracking-tight">
+          Onde encontrar produto para reposição
+        </h2>
+        <p className="text-xs text-muted-foreground">
+          Se estiver sem um item, veja abaixo se há no depósito central ou com outro vendedor.
+        </p>
+        {rede.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-border/70 bg-muted/20 px-3 py-4 text-sm text-muted-foreground">
+            Sem disponibilidade na rede no momento.
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {rede.slice(0, 20).map((p) => (
+              <li key={p.id} className="rounded-xl border border-border/70 bg-card p-3 shadow-sm">
+                <p className="font-medium leading-snug">{p.nome}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {p.marca}
+                  {p.sabor ? ` · ${p.sabor}` : ""} · {p.sku}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Depósito: <span className="font-semibold text-foreground">{p.estoqueCentral}</span>{" "}
+                  · Outros vendedores:{" "}
+                  <span className="font-semibold text-foreground">{p.totalOutros}</span>
+                </p>
+                {p.outros.length > 0 ? (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Com:{" "}
+                    {p.outros
+                      .slice(0, 3)
+                      .map((o) => `${o.sellerNome} (${o.quantidade})`)
+                      .join(" · ")}
+                    {p.outros.length > 3 ? " …" : ""}
+                  </p>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

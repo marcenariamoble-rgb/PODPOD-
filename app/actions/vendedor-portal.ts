@@ -54,6 +54,13 @@ export async function actionDevolucaoPortal(formData: FormData) {
   revalidatePath("/vendedor");
   revalidatePath("/vendedor/estoque");
   revalidatePath("/vendedor/devolver");
+  // A devolução também altera o estoque central (visões administrativas e cardápio).
+  revalidatePath("/dashboard");
+  revalidatePath("/produtos");
+  revalidatePath("/movimentacoes");
+  revalidatePath("/comodato/estoque");
+  revalidatePath("/comodato/operacoes");
+  revalidatePath("/cardapio");
 }
 
 export async function actionConsumoProprioPortal(formData: FormData) {
