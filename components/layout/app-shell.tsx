@@ -46,24 +46,37 @@ const mainNav = [
   { href: "/produtos", label: "Produtos", icon: Package },
   { href: "/vendedores", label: "Vendedores", icon: Users },
   { href: "/usuarios", label: "Utilizadores", icon: UserCog },
-  { href: "/comodato/estoque", label: "Em comodato", icon: Boxes },
-  { href: "/movimentacoes", label: "Movimentações", icon: ArrowLeftRight },
-  { href: "/relatorios", label: "Relatórios", icon: FileBarChart },
 ];
 
 /** Estoque e comodato; vendas ficam no painel /vendas. */
-const operacoes = [
-  { href: "/estoque/entrada", label: "Nova entrada", icon: PackagePlus },
-  { href: "/consumo-proprio", label: "Consumo próprio", icon: Coffee },
-  { href: "/movimentacoes/saida", label: "Saída manual", icon: ArrowDownToLine },
-  { href: "/comodato", label: "Entrega comodato", icon: Truck, end: true },
-  { href: "/comodato/estoque", label: "Estoque em comodato", icon: Boxes },
+const operacoesAgrupadas = [
   {
-    href: "/comodato/operacoes",
-    label: "Ajustar comodato",
-    icon: SlidersHorizontal,
+    title: "Estoque",
+    items: [
+      { href: "/estoque/entrada", label: "Nova entrada", icon: PackagePlus },
+      { href: "/movimentacoes/saida", label: "Saída manual", icon: ArrowDownToLine },
+      { href: "/movimentacoes", label: "Movimentações", icon: ArrowLeftRight },
+    ],
   },
-  { href: "/cardapio", label: "Cardápio (público)", icon: BookOpen },
+  {
+    title: "Comodato",
+    items: [
+      { href: "/comodato", label: "Entrega comodato", icon: Truck, end: true },
+      { href: "/comodato/estoque", label: "Estoque em comodato", icon: Boxes },
+      {
+        href: "/comodato/operacoes",
+        label: "Ajustar comodato",
+        icon: SlidersHorizontal,
+      },
+    ],
+  },
+  {
+    title: "Consultas",
+    items: [
+      { href: "/relatorios", label: "Relatórios", icon: FileBarChart },
+      { href: "/cardapio", label: "Cardápio (público)", icon: BookOpen },
+    ],
+  },
 ];
 
 function NavLink({
@@ -135,9 +148,18 @@ function SidebarQuickOps() {
         />
       </button>
       {open ? (
-        <div className="mt-1 flex flex-col gap-0.5">{operacoes.map((item) => (
-          <NavLink key={item.href} {...item} />
-        ))}</div>
+        <div className="mt-1 space-y-2">
+          {operacoesAgrupadas.map((group) => (
+            <div key={group.title} className="space-y-0.5">
+              <p className="px-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/80">
+                {group.title}
+              </p>
+              {group.items.map((item) => (
+                <NavLink key={item.href} {...item} />
+              ))}
+            </div>
+          ))}
+        </div>
       ) : null}
     </div>
   );
@@ -292,7 +314,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         </span>
                         Financeiro
                       </Link>
-                      {operacoes.map((op) => (
+                      {operacoesAgrupadas.flatMap((g) => g.items).map((op) => (
                         <Link
                           key={op.href}
                           href={op.href}
@@ -304,24 +326,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                           {op.label}
                         </Link>
                       ))}
-                      <Link
-                        href="/movimentacoes"
-                        className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card p-4 text-sm font-semibold shadow-sm transition-all hover:border-primary/25 hover:shadow-md"
-                      >
-                        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground">
-                          <ArrowLeftRight className="size-[18px]" />
-                        </span>
-                        Movimentações
-                      </Link>
-                      <Link
-                        href="/relatorios"
-                        className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card p-4 text-sm font-semibold shadow-sm transition-all hover:border-primary/25 hover:shadow-md"
-                      >
-                        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground">
-                          <FileBarChart className="size-[18px]" />
-                        </span>
-                        Relatórios
-                      </Link>
                     </div>
                   </SheetContent>
                 </Sheet>
