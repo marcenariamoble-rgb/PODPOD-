@@ -17,6 +17,13 @@ function isPublicImageUrl(url: string) {
   );
 }
 
+function extractModeloNumero(text: string): number | null {
+  const m = /(?:^|[^a-z0-9])v\s*(\d{2,4})(?:[^a-z0-9]|$)/i.exec(text);
+  if (!m) return null;
+  const n = Number(m[1]);
+  return Number.isFinite(n) ? n : null;
+}
+
 export default async function CardapioPage({
   searchParams,
 }: {
@@ -156,6 +163,22 @@ export default async function CardapioPage({
         <div className="space-y-10">
           {ordemCats.map((categoria, idx) => {
             const itens = grupos.get(categoria) ?? [];
+            const itensOrdenados = [...itens].sort((a, b) => {
+              // 1) Sempre mostrar disponíveis primeiro.
+              if (a.disponivel !== b.disponivel) return a.disponivel ? -1 : 1;
+              // 2) Dentro da categoria, priorizar modelo numérico (V80 antes de V155).
+              const na = extractModeloNumero(`${a.nome} ${a.marca} ${a.sabor ?? ""}`);
+              const nb = extractModeloNumero(`${b.nome} ${b.marca} ${b.sabor ?? ""}`);
+              if (na != null && nb != null && na !== nb) return na - nb;
+              if (na != null && nb == null) return -1;
+              if (na == null && nb != null) return 1;
+              // 3) Desempate estável e previsível.
+              return `${a.nome} ${a.marca} ${a.sabor ?? ""}`.localeCompare(
+                `${b.nome} ${b.marca} ${b.sabor ?? ""}`,
+                "pt-BR",
+                { numeric: true, sensitivity: "base" }
+              );
+            });
             const headingId = `cardapio-cat-${idx}`;
             return (
               <section key={categoria} aria-labelledby={headingId}>
@@ -166,7 +189,7 @@ export default async function CardapioPage({
                   {categoria}
                 </h2>
                 <ul className="grid gap-3 sm:grid-cols-2">
-                  {itens.map((p) => {
+                  {itensOrdenados.map((p) => {
                     const foto = p.fotoUrl?.trim();
                     const showImg = foto && isPublicImageUrl(foto);
                     const label = `${p.nome} — ${p.marca}${p.sabor ? ` (${p.sabor})` : ""}`;
@@ -183,7 +206,8 @@ export default async function CardapioPage({
                                 alt={p.nome}
                                 fill
                                 className="object-cover"
-                                sizes="(max-width: 640px) 100vw, 50vw"
+                                sizes="(max-width: 640px) 100vw, 48vw"
+                                quality={68}
                               />
                             ) : (
                               // eslint-disable-next-line @next/next/no-img-element -- URLs externas arbitrárias
@@ -191,6 +215,9 @@ export default async function CardapioPage({
                                 src={foto!}
                                 alt={p.nome}
                                 className="h-full w-full object-cover"
+                                loading="lazy"
+                                decoding="async"
+                                fetchPriority="low"
                               />
                             )
                           ) : (
