@@ -34,7 +34,16 @@ export default async function ComodatoEstoquePage({
     }),
     prisma.product.findMany({
       where: { ativo: true, estoqueCentral: { gt: 0 } },
-      select: { estoqueCentral: true, custoUnitario: true, precoVendaSugerido: true },
+      select: {
+        id: true,
+        nome: true,
+        marca: true,
+        sabor: true,
+        sku: true,
+        estoqueCentral: true,
+        custoUnitario: true,
+        precoVendaSugerido: true,
+      },
     }),
     prisma.sellerProductStock.findMany({
       where: { quantidade: { gt: 0 } },
@@ -195,6 +204,96 @@ export default async function ComodatoEstoquePage({
           Limpar
         </Link>
       </form>
+
+      <div className="space-y-2">
+        <div className="flex items-end justify-between gap-3">
+          <h2 className="font-heading text-lg font-semibold tracking-tight text-foreground">
+            Produtos no estoque central
+          </h2>
+          <Link
+            href="/estoque/entrada"
+            className={cn(
+              buttonVariants({ variant: "outline", size: "sm" }),
+              "rounded-xl font-semibold"
+            )}
+          >
+            Nova entrada
+          </Link>
+        </div>
+        <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-[var(--shadow-card)]">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Produto</TableHead>
+                <TableHead className="hidden sm:table-cell">SKU</TableHead>
+                <TableHead className="text-right">Central</TableHead>
+                <TableHead className="hidden md:table-cell text-right">Custo unit.</TableHead>
+                <TableHead className="hidden md:table-cell text-right">Pço. sug.</TableHead>
+                <TableHead className="hidden lg:table-cell text-right">Valor custo</TableHead>
+                <TableHead className="hidden lg:table-cell text-right">Valor venda</TableHead>
+                <TableHead className="w-[96px] text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {centralProdutos.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
+                    Não há produtos com saldo no estoque central.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                [...centralProdutos]
+                  .sort((a, b) => b.estoqueCentral - a.estoqueCentral)
+                  .map((p) => (
+                    <TableRow key={p.id}>
+                      <TableCell>
+                        <Link
+                          href={`/produtos/${p.id}`}
+                          className="font-medium text-primary underline-offset-4 hover:underline"
+                        >
+                          {p.nome}
+                        </Link>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {p.marca}
+                          {p.sabor ? ` · ${p.sabor}` : ""}
+                        </p>
+                      </TableCell>
+                      <TableCell className="hidden font-mono text-xs sm:table-cell">
+                        {p.sku}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums font-semibold">
+                        {p.estoqueCentral}
+                      </TableCell>
+                      <TableCell className="hidden text-right tabular-nums md:table-cell">
+                        {formatBRL(Number(p.custoUnitario))}
+                      </TableCell>
+                      <TableCell className="hidden text-right tabular-nums md:table-cell">
+                        {formatBRL(Number(p.precoVendaSugerido))}
+                      </TableCell>
+                      <TableCell className="hidden text-right tabular-nums lg:table-cell">
+                        {formatBRL(p.estoqueCentral * Number(p.custoUnitario))}
+                      </TableCell>
+                      <TableCell className="hidden text-right tabular-nums lg:table-cell">
+                        {formatBRL(p.estoqueCentral * Number(p.precoVendaSugerido))}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Link
+                          href={`/produtos/${p.id}`}
+                          className={cn(
+                            buttonVariants({ variant: "ghost", size: "sm" }),
+                            "rounded-lg font-semibold text-primary"
+                          )}
+                        >
+                          Editar
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
 
       <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-[var(--shadow-card)]">
         <Table>
