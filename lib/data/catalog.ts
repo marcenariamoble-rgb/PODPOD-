@@ -12,6 +12,7 @@ export async function listProdutosAtivos() {
       sabor: true,
       sku: true,
       estoqueCentral: true,
+      custoUnitario: true,
     },
   });
 }

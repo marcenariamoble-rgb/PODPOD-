@@ -30,9 +30,29 @@ export async function registrarEntradaManual(input: {
   const detentorGeralId = getDetentorEstoqueGeralSellerId();
 
   await prisma.$transaction(async (tx) => {
+    const product = await tx.product.findUniqueOrThrow({
+      where: { id: productId },
+      select: { estoqueCentral: true, custoUnitario: true },
+    });
+    let custoAtualizado: number | undefined;
+    if (vu != null) {
+      const custoAnterior = toNumber(product.custoUnitario);
+      const estoqueAnterior = product.estoqueCentral;
+      const totalAnterior = custoAnterior * estoqueAnterior;
+      const totalNovo = vu * quantidade;
+      const base = estoqueAnterior + quantidade;
+      if (base > 0) {
+        // Custo médio ponderado: reflete entradas com preços diferentes.
+        custoAtualizado = Number(((totalAnterior + totalNovo) / base).toFixed(2));
+      }
+    }
+
     await tx.product.update({
       where: { id: productId },
-      data: { estoqueCentral: { increment: quantidade } },
+      data: {
+        estoqueCentral: { increment: quantidade },
+        ...(custoAtualizado != null ? { custoUnitario: custoAtualizado } : {}),
+      },
     });
     await tx.movimentacaoEstoque.create({
       data: {

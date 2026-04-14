@@ -12,6 +12,7 @@ export const ADMIN_ROUTE_PREFIXES = [
   "/devolucoes",
   "/recebimentos",
   "/pedidos-cardapio",
+  "/consumo-proprio",
 ] as const;
 
 export function isAdminRoute(pathname: string): boolean {

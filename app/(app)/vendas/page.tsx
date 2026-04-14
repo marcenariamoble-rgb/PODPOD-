@@ -49,6 +49,14 @@ const acoes = [
     emphasis: false as const,
   },
   {
+    href: "/consumo-proprio",
+    title: "Consumo próprio",
+    description:
+      "Separar o consumo dos vendedores (cobrança a custo) das vendas ao cliente.",
+    icon: Wallet,
+    emphasis: false as const,
+  },
+  {
     href: "/movimentacoes?tipo=VENDA",
     title: "Movimentações de vendas",
     description: "Filtrar o histórico só por lançamentos do tipo venda.",

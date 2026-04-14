@@ -10,6 +10,7 @@ import { FormSuccessBanner } from "@/components/forms/form-success-banner";
 import { listProdutosAtivos } from "@/lib/data/catalog";
 import { getEstoqueGeralHintProps } from "@/lib/data/estoque-geral";
 import { EstoqueGeralHint } from "@/components/inventory/estoque-geral-hint";
+import { EntradaCustoPreview } from "@/components/inventory/entrada-custo-preview";
 import { cn } from "@/lib/utils";
 
 export default async function EntradaEstoquePage({
@@ -87,6 +88,13 @@ export default async function EntradaEstoquePage({
                 placeholder="Registrado na movimentação"
               />
             </Field>
+            <EntradaCustoPreview
+              produtos={produtos.map((p) => ({
+                id: p.id,
+                custoUnitario: Number(p.custoUnitario),
+                estoqueCentral: p.estoqueCentral,
+              }))}
+            />
             <Field label="Observação" htmlFor="observacoes">
               <Textarea id="observacoes" name="observacoes" rows={3} />
             </Field>

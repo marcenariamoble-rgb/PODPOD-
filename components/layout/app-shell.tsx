@@ -23,6 +23,7 @@ import {
   BookOpen,
   ClipboardList,
   UserCog,
+  Coffee,
 } from "lucide-react";
 import { PodPodMark } from "@/components/brand/podpod-mark";
 import { cn } from "@/lib/utils";
@@ -40,6 +41,7 @@ const mainNav = [
   { href: "/dashboard", label: "Painel", icon: LayoutDashboard },
   { href: "/pedidos-cardapio", label: "Pedidos cardápio", icon: ClipboardList },
   { href: "/vendas", label: "Vendas", icon: Receipt },
+  { href: "/consumo-proprio", label: "Consumo próprio", icon: Coffee },
   { href: "/financeiro", label: "Financeiro", icon: Landmark },
   { href: "/produtos", label: "Produtos", icon: Package },
   { href: "/vendedores", label: "Vendedores", icon: Users },
@@ -52,6 +54,7 @@ const mainNav = [
 /** Estoque e comodato; vendas ficam no painel /vendas. */
 const operacoes = [
   { href: "/estoque/entrada", label: "Nova entrada", icon: PackagePlus },
+  { href: "/consumo-proprio", label: "Consumo próprio", icon: Coffee },
   { href: "/movimentacoes/saida", label: "Saída manual", icon: ArrowDownToLine },
   { href: "/comodato", label: "Entrega comodato", icon: Truck, end: true },
   { href: "/comodato/estoque", label: "Estoque em comodato", icon: Boxes },
