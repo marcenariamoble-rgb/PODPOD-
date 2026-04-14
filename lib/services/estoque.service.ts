@@ -20,6 +20,28 @@ export async function registrarEntradaManual(input: {
   usuarioId: string;
 }) {
   const { productId, quantidade, observacoes, custoUnitario, usuarioId } = input;
+  await prisma.$transaction(async (tx) => {
+    await registrarEntradaManualWithTx(tx, {
+      productId,
+      quantidade,
+      observacoes,
+      custoUnitario,
+      usuarioId,
+    });
+  });
+}
+
+async function registrarEntradaManualWithTx(
+  tx: Prisma.TransactionClient,
+  input: {
+    productId: string;
+    quantidade: number;
+    observacoes?: string;
+    custoUnitario?: number | null;
+    usuarioId: string;
+  }
+) {
+  const { productId, quantidade, observacoes, custoUnitario, usuarioId } = input;
   if (quantidade <= 0) throw new Error("Quantidade deve ser maior que zero.");
 
   const vu =
@@ -29,43 +51,78 @@ export async function registrarEntradaManual(input: {
   const valorTotal = vu != null ? vu * quantidade : null;
   const detentorGeralId = getDetentorEstoqueGeralSellerId();
 
-  await prisma.$transaction(async (tx) => {
-    const product = await tx.product.findUniqueOrThrow({
-      where: { id: productId },
-      select: { estoqueCentral: true, custoUnitario: true },
-    });
-    let custoAtualizado: number | undefined;
-    if (vu != null) {
-      const custoAnterior = toNumber(product.custoUnitario);
-      const estoqueAnterior = product.estoqueCentral;
-      const totalAnterior = custoAnterior * estoqueAnterior;
-      const totalNovo = vu * quantidade;
-      const base = estoqueAnterior + quantidade;
-      if (base > 0) {
-        // Custo médio ponderado: reflete entradas com preços diferentes.
-        custoAtualizado = Number(((totalAnterior + totalNovo) / base).toFixed(2));
-      }
+  const product = await tx.product.findUniqueOrThrow({
+    where: { id: productId },
+    select: { estoqueCentral: true, custoUnitario: true },
+  });
+  let custoAtualizado: number | undefined;
+  if (vu != null) {
+    const custoAnterior = toNumber(product.custoUnitario);
+    const estoqueAnterior = product.estoqueCentral;
+    const totalAnterior = custoAnterior * estoqueAnterior;
+    const totalNovo = vu * quantidade;
+    const base = estoqueAnterior + quantidade;
+    if (base > 0) {
+      // Custo medio ponderado: reflete entradas com preços diferentes.
+      custoAtualizado = Number(((totalAnterior + totalNovo) / base).toFixed(2));
     }
+  }
 
-    await tx.product.update({
-      where: { id: productId },
-      data: {
-        estoqueCentral: { increment: quantidade },
-        ...(custoAtualizado != null ? { custoUnitario: custoAtualizado } : {}),
-      },
-    });
-    await tx.movimentacaoEstoque.create({
-      data: {
-        tipoMovimentacao: TipoMovimentacao.ENTRADA,
-        produtoId: productId,
-        vendedorId: detentorGeralId,
-        quantidade,
-        valorUnitario: vu,
-        valorTotal,
-        observacoes: observacoes ?? null,
-        usuarioResponsavelId: usuarioId,
-      },
-    });
+  await tx.product.update({
+    where: { id: productId },
+    data: {
+      estoqueCentral: { increment: quantidade },
+      ...(custoAtualizado != null ? { custoUnitario: custoAtualizado } : {}),
+    },
+  });
+  await tx.movimentacaoEstoque.create({
+    data: {
+      tipoMovimentacao: TipoMovimentacao.ENTRADA,
+      produtoId: productId,
+      vendedorId: detentorGeralId,
+      quantidade,
+      valorUnitario: vu,
+      valorTotal,
+      observacoes: observacoes ?? null,
+      usuarioResponsavelId: usuarioId,
+    },
+  });
+}
+
+export async function registrarEntradaManualLote(input: {
+  itens: Array<{
+    productId: string;
+    quantidade: number;
+    custoUnitario?: number | null;
+    observacoes?: string;
+  }>;
+  usuarioId: string;
+}) {
+  const itens = input.itens
+    .map((i) => ({
+      productId: String(i.productId ?? "").trim(),
+      quantidade: Math.floor(Number(i.quantidade)),
+      custoUnitario:
+        i.custoUnitario != null && Number.isFinite(i.custoUnitario)
+          ? Number(i.custoUnitario)
+          : null,
+      observacoes: i.observacoes,
+    }))
+    .filter((i) => i.productId && i.quantidade > 0);
+  if (itens.length === 0) {
+    throw new Error("Informe pelo menos um item para entrada.");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    for (const item of itens) {
+      await registrarEntradaManualWithTx(tx, {
+        productId: item.productId,
+        quantidade: item.quantidade,
+        observacoes: item.observacoes,
+        custoUnitario: item.custoUnitario,
+        usuarioId: input.usuarioId,
+      });
+    }
   });
 }
 
@@ -517,6 +574,25 @@ export async function registrarVenda(input: {
   observacoes?: string;
   usuarioId: string;
 }) {
+  await prisma.$transaction(async (tx) => {
+    await registrarVendaWithTx(tx, input);
+  });
+
+  await recalcularStatusVendasVendedor(String(input.vendedorId ?? "").trim());
+}
+
+async function registrarVendaWithTx(
+  tx: Prisma.TransactionClient,
+  input: {
+    vendedorId: string;
+    productId: string;
+    quantidade: number;
+    valorUnitario: number;
+    formaPagamento?: string | null;
+    observacoes?: string;
+    usuarioId: string;
+  }
+) {
   const vendedorId = String(input.vendedorId ?? "").trim();
   const productId = String(input.productId ?? "").trim();
   const qtd = Math.floor(Math.max(0, Number(input.quantidade)));
@@ -535,80 +611,117 @@ export async function registrarVenda(input: {
 
   const valorTotal = qtd * valorUnitario;
 
-  await prisma.$transaction(async (tx) => {
-    const row = await tx.sellerProductStock.findUnique({
-      where: { sellerId_productId: { sellerId: vendedorId, productId } },
-    });
-    const emPosse = Math.max(0, Math.floor(Number(row?.quantidade ?? 0)));
-    const falta = Math.max(0, qtd - emPosse);
+  const row = await tx.sellerProductStock.findUnique({
+    where: { sellerId_productId: { sellerId: vendedorId, productId } },
+  });
+  const emPosse = Math.max(0, Math.floor(Number(row?.quantidade ?? 0)));
+  const falta = Math.max(0, qtd - emPosse);
 
-    await alocarCentralParaVendedorParaVenda(
-      tx,
+  await alocarCentralParaVendedorParaVenda(
+    tx,
+    vendedorId,
+    productId,
+    falta,
+    usuarioId
+  );
+
+  const rowAtual = await tx.sellerProductStock.findUnique({
+    where: { sellerId_productId: { sellerId: vendedorId, productId } },
+  });
+  const disponivel = Math.max(0, Math.floor(Number(rowAtual?.quantidade ?? 0)));
+  if (disponivel < qtd) {
+    throw new Error(
+      "Não foi possível preparar o estoque para esta venda. Verifique central, limite de comodato e tente novamente."
+    );
+  }
+
+  const novaPosse = disponivel - qtd;
+  await tx.sellerProductStock.update({
+    where: { sellerId_productId: { sellerId: vendedorId, productId } },
+    data: { quantidade: novaPosse },
+  });
+
+  const seller = await tx.seller.findUniqueOrThrow({
+    where: { id: vendedorId },
+    select: {
+      comissaoDescontaNaVenda: true,
+      comissaoTipo: true,
+      comissaoPercentual: true,
+      comissaoPorUnidade: true,
+    },
+  });
+  const { valorComissaoRetida, valorSaldoRepasse } = calcularRepasseVenda(
+    valorTotal,
+    qtd,
+    seller
+  );
+
+  const venda = await tx.venda.create({
+    data: {
       vendedorId,
-      productId,
-      falta,
-      usuarioId
-    );
-
-    const rowAtual = await tx.sellerProductStock.findUnique({
-      where: { sellerId_productId: { sellerId: vendedorId, productId } },
-    });
-    const disponivel = Math.max(0, Math.floor(Number(rowAtual?.quantidade ?? 0)));
-    if (disponivel < qtd) {
-      throw new Error(
-        "Não foi possível preparar o estoque para esta venda. Verifique central, limite de comodato e tente novamente."
-      );
-    }
-
-    const novaPosse = disponivel - qtd;
-    await tx.sellerProductStock.update({
-      where: { sellerId_productId: { sellerId: vendedorId, productId } },
-      data: { quantidade: novaPosse },
-    });
-
-    const seller = await tx.seller.findUniqueOrThrow({
-      where: { id: vendedorId },
-      select: {
-        comissaoDescontaNaVenda: true,
-        comissaoTipo: true,
-        comissaoPercentual: true,
-        comissaoPorUnidade: true,
-      },
-    });
-    const { valorComissaoRetida, valorSaldoRepasse } = calcularRepasseVenda(
+      produtoId: productId,
+      quantidade: qtd,
+      quantidadeAlocadaCentral: falta,
+      valorUnitario,
       valorTotal,
-      qtd,
-      seller
-    );
+      valorComissaoRetida,
+      valorSaldoRepasse,
+      formaPagamento: formaPagamento ?? null,
+      observacoes: observacoes ?? null,
+    },
+  });
 
-    const venda = await tx.venda.create({
-      data: {
-        vendedorId,
-        produtoId: productId,
-        quantidade: qtd,
-        quantidadeAlocadaCentral: falta,
-        valorUnitario,
-        valorTotal,
-        valorComissaoRetida,
-        valorSaldoRepasse,
-        formaPagamento: formaPagamento ?? null,
-        observacoes: observacoes ?? null,
-      },
-    });
+  await tx.movimentacaoEstoque.create({
+    data: {
+      tipoMovimentacao: TipoMovimentacao.VENDA,
+      produtoId: productId,
+      vendedorId,
+      quantidade: qtd,
+      valorUnitario,
+      valorTotal,
+      observacoes: observacoes ?? null,
+      usuarioResponsavelId: usuarioId,
+      vendaId: venda.id,
+    },
+  });
+}
 
-    await tx.movimentacaoEstoque.create({
-      data: {
-        tipoMovimentacao: TipoMovimentacao.VENDA,
-        produtoId: productId,
+export async function registrarVendaLote(input: {
+  vendedorId: string;
+  itens: Array<{
+    productId: string;
+    quantidade: number;
+    valorUnitario: number;
+    formaPagamento?: string | null;
+    observacoes?: string;
+  }>;
+  usuarioId: string;
+}) {
+  const vendedorId = String(input.vendedorId ?? "").trim();
+  const itens = input.itens
+    .map((i) => ({
+      productId: String(i.productId ?? "").trim(),
+      quantidade: Math.floor(Number(i.quantidade)),
+      valorUnitario: Number(i.valorUnitario),
+      formaPagamento: i.formaPagamento,
+      observacoes: i.observacoes,
+    }))
+    .filter((i) => i.productId && i.quantidade > 0);
+  if (!vendedorId) throw new Error("Vendedor inválido.");
+  if (itens.length === 0) throw new Error("Informe ao menos um item para venda.");
+
+  await prisma.$transaction(async (tx) => {
+    for (const item of itens) {
+      await registrarVendaWithTx(tx, {
         vendedorId,
-        quantidade: qtd,
-        valorUnitario,
-        valorTotal,
-        observacoes: observacoes ?? null,
-        usuarioResponsavelId: usuarioId,
-        vendaId: venda.id,
-      },
-    });
+        productId: item.productId,
+        quantidade: item.quantidade,
+        valorUnitario: item.valorUnitario,
+        formaPagamento: item.formaPagamento,
+        observacoes: item.observacoes,
+        usuarioId: input.usuarioId,
+      });
+    }
   });
 
   await recalcularStatusVendasVendedor(vendedorId);

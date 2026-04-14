@@ -6,7 +6,7 @@ import { auth } from "@/lib/auth";
 import {
   registrarConsumoProprioVendedor,
   registrarDevolucao,
-  registrarVenda,
+  registrarVendaLote,
 } from "@/lib/services/estoque.service";
 
 function withParam(path: string, key: string, value: string) {
@@ -78,18 +78,17 @@ export async function actionVendaPortal(formData: FormData) {
   }
 
   try {
-    for (let i = 0; i < itens.length; i += 1) {
-      const item = itens[i];
-      await registrarVenda({
-        vendedorId: sellerId,
+    await registrarVendaLote({
+      vendedorId: sellerId,
+      itens: itens.map((item, i) => ({
         productId: item.productId,
         quantidade: item.quantidade,
         valorUnitario: item.valorUnitario,
         formaPagamento,
         observacoes: observacoes ? `[Lote ${i + 1}] ${observacoes}` : undefined,
-        usuarioId: userId,
-      });
-    }
+      })),
+      usuarioId: userId,
+    });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Não foi possível registrar a venda em lote.";
     redirect(withParam(redirectAfter, "error", msg));

@@ -8,11 +8,11 @@ import {
   entregarComodatoLote,
   registrarConsumoProprioVendedor,
   registrarDevolucao,
-  registrarEntradaManual,
+  registrarEntradaManualLote,
   registrarPerda,
   registrarRecebimento,
   registrarSaidaManual,
-  registrarVenda,
+  registrarVendaLote,
   estornarVenda,
 } from "@/lib/services/estoque.service";
 
@@ -69,9 +69,8 @@ export async function actionEntradaManual(formData: FormData) {
 
   try {
     const userId = await getUserId();
-    for (let i = 0; i < itens.length; i += 1) {
-      const item = itens[i];
-      await registrarEntradaManual({
+    await registrarEntradaManualLote({
+      itens: itens.map((item, i) => ({
         productId: item.productId,
         quantidade: item.quantidade,
         observacoes: observacoes ? `[Lote ${i + 1}] ${observacoes}` : undefined,
@@ -79,9 +78,9 @@ export async function actionEntradaManual(formData: FormData) {
           item.custoUnitario != null && !Number.isNaN(item.custoUnitario)
             ? item.custoUnitario
             : null,
-        usuarioId: userId,
-      });
-    }
+      })),
+      usuarioId: userId,
+    });
   } catch (e) {
     const msg =
       e instanceof Error ? e.message : "Não foi possível registrar a entrada.";
@@ -300,20 +299,18 @@ export async function actionVenda(formData: FormData) {
     redirect(withParam(redirectAfter, "error", "Informe ao menos um item para venda."));
   }
 
-  const userId = await getUserId();
   try {
-    for (let i = 0; i < itens.length; i += 1) {
-      const item = itens[i];
-      await registrarVenda({
-        vendedorId,
+    await registrarVendaLote({
+      vendedorId,
+      itens: itens.map((item, i) => ({
         productId: item.productId,
         quantidade: item.quantidade,
         valorUnitario: item.valorUnitario,
         formaPagamento,
         observacoes: observacoes ? `[Lote ${i + 1}] ${observacoes}` : undefined,
-        usuarioId: userId,
-      });
-    }
+      })),
+      usuarioId: await getUserId(),
+    });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Não foi possível registrar a venda em lote.";
     redirect(withParam(redirectAfter, "error", msg));
