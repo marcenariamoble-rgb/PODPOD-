@@ -6,12 +6,19 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, nativeSelectClassName } from "@/components/forms/form-field";
+import { FormErrorBanner } from "@/components/forms/form-error-banner";
+import { FormSuccessBanner } from "@/components/forms/form-success-banner";
 import {
   listProdutosAtivos,
   listVendedoresAtivosParaComodato,
 } from "@/lib/data/catalog";
 
-export default async function ComodatoPage() {
+export default async function ComodatoPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; ok?: string }>;
+}) {
+  const { error, ok } = await searchParams;
   const [produtos, vendedores] = await Promise.all([
     listProdutosAtivos(),
     listVendedoresAtivosParaComodato(),
@@ -51,12 +58,17 @@ export default async function ComodatoPage() {
           </Link>
         </div>
       </div>
+      <FormSuccessBanner
+        message={ok === "1" ? "Entrega em comodato registrada com sucesso." : null}
+      />
+      <FormErrorBanner message={error ? decodeURIComponent(error) : null} />
       <Card>
         <CardHeader>
           <CardTitle className="text-lg font-semibold">Nova entrega</CardTitle>
         </CardHeader>
         <CardContent>
           <form action={actionComodato} className="space-y-4">
+            <input type="hidden" name="redirectAfter" value="/comodato" />
             <Field label="Vendedor" htmlFor="vendedorId">
               <select
                 id="vendedorId"

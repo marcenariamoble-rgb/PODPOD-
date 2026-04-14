@@ -121,22 +121,33 @@ export async function actionAjusteEstoque(formData: FormData) {
 }
 
 export async function actionComodato(formData: FormData) {
-  await entregarComodato({
-    vendedorId: String(formData.get("vendedorId") ?? ""),
-    productId: String(formData.get("productId") ?? ""),
-    quantidade: Number(formData.get("quantidade")),
-    valorUnitarioReferencia: formData.get("valorUnitario")
-      ? Number(formData.get("valorUnitario"))
-      : null,
-    observacoes: String(formData.get("observacoes") ?? "") || undefined,
-    usuarioId: await getUserId(),
-  });
+  const redirectAfter =
+    String(formData.get("redirectAfter") ?? "/comodato").trim() || "/comodato";
+  const productId = String(formData.get("productId") ?? "");
+  try {
+    await entregarComodato({
+      vendedorId: String(formData.get("vendedorId") ?? ""),
+      productId,
+      quantidade: Number(formData.get("quantidade")),
+      valorUnitarioReferencia: formData.get("valorUnitario")
+        ? Number(formData.get("valorUnitario"))
+        : null,
+      observacoes: String(formData.get("observacoes") ?? "") || undefined,
+      usuarioId: await getUserId(),
+    });
+  } catch (e) {
+    const msg =
+      e instanceof Error ? e.message : "Não foi possível registrar a entrega.";
+    redirect(withParam(redirectAfter, "error", msg));
+  }
   revalidatePath("/dashboard");
   revalidatePath("/produtos");
+  revalidatePath(`/produtos/${productId}`);
   revalidatePath("/vendedores");
   revalidatePath("/movimentacoes");
   revalidatePath("/comodato/estoque");
   revalidatePath("/comodato/operacoes");
+  redirect(withParam(redirectAfter, "ok", "1"));
 }
 
 export async function actionEstornarVenda(formData: FormData) {
