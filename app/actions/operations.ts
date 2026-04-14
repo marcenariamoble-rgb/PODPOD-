@@ -6,6 +6,7 @@ import { auth } from "@/lib/auth";
 import {
   ajusteEstoque,
   entregarComodato,
+  entregarComodatoLote,
   registrarDevolucao,
   registrarEntradaManual,
   registrarPerda,
@@ -123,15 +124,23 @@ export async function actionAjusteEstoque(formData: FormData) {
 export async function actionComodato(formData: FormData) {
   const redirectAfter =
     String(formData.get("redirectAfter") ?? "/comodato").trim() || "/comodato";
-  const productId = String(formData.get("productId") ?? "");
+  const productIds = formData.getAll("productId").map((v) => String(v ?? ""));
+  const quantidades = formData.getAll("quantidade").map((v) => Number(v));
+  const valores = formData
+    .getAll("valorUnitario")
+    .map((v) => String(v ?? "").trim())
+    .map((raw) => (raw === "" ? null : Number(raw.replace(",", "."))));
+
+  const itens = productIds.map((productId, idx) => ({
+    productId,
+    quantidade: quantidades[idx] ?? 0,
+    valorUnitarioReferencia: valores[idx] ?? null,
+  }));
+
   try {
-    await entregarComodato({
+    await entregarComodatoLote({
       vendedorId: String(formData.get("vendedorId") ?? ""),
-      productId,
-      quantidade: Number(formData.get("quantidade")),
-      valorUnitarioReferencia: formData.get("valorUnitario")
-        ? Number(formData.get("valorUnitario"))
-        : null,
+      itens,
       observacoes: String(formData.get("observacoes") ?? "") || undefined,
       usuarioId: await getUserId(),
     });
@@ -142,7 +151,6 @@ export async function actionComodato(formData: FormData) {
   }
   revalidatePath("/dashboard");
   revalidatePath("/produtos");
-  revalidatePath(`/produtos/${productId}`);
   revalidatePath("/vendedores");
   revalidatePath("/movimentacoes");
   revalidatePath("/comodato/estoque");

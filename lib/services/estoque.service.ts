@@ -297,6 +297,108 @@ export async function entregarComodato(input: {
   });
 }
 
+export async function entregarComodatoLote(input: {
+  vendedorId: string;
+  itens: Array<{
+    productId: string;
+    quantidade: number;
+    valorUnitarioReferencia?: number | null;
+  }>;
+  observacoes?: string;
+  usuarioId: string;
+}) {
+  const vendedorId = String(input.vendedorId ?? "").trim();
+  const itens = input.itens
+    .map((i) => ({
+      productId: String(i.productId ?? "").trim(),
+      quantidade: Math.floor(Number(i.quantidade)),
+      valorUnitarioReferencia:
+        i.valorUnitarioReferencia != null &&
+        Number.isFinite(i.valorUnitarioReferencia) &&
+        i.valorUnitarioReferencia >= 0
+          ? i.valorUnitarioReferencia
+          : null,
+    }))
+    .filter((i) => i.productId && i.quantidade > 0);
+
+  if (!vendedorId) throw new Error("Vendedor inválido.");
+  if (itens.length === 0) {
+    throw new Error("Informe pelo menos um produto com quantidade maior que zero.");
+  }
+
+  const detentorId = getDetentorEstoqueGeralSellerId();
+  if (detentorId && vendedorId === detentorId) {
+    throw new Error(
+      "O depósito geral não recebe comodato por esta tela — use Entrada no estoque para repor o central."
+    );
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const seller = await tx.seller.findUniqueOrThrow({
+      where: { id: vendedorId },
+    });
+
+    for (let idx = 0; idx < itens.length; idx += 1) {
+      const item = itens[idx];
+      if (item.quantidade <= 0) {
+        throw new Error(`Item ${idx + 1}: quantidade inválida.`);
+      }
+
+      const product = await tx.product.findUniqueOrThrow({
+        where: { id: item.productId },
+      });
+      if (product.estoqueCentral < item.quantidade) {
+        throw new Error(
+          `Item ${idx + 1} (${product.nome}): estoque central insuficiente.`
+        );
+      }
+
+      if (seller.limiteComodato != null) {
+        const agg = await tx.sellerProductStock.aggregate({
+          where: { sellerId: vendedorId },
+          _sum: { quantidade: true },
+        });
+        const emPosse = agg._sum.quantidade ?? 0;
+        if (emPosse + item.quantidade > seller.limiteComodato) {
+          throw new Error(
+            `Item ${idx + 1} (${product.nome}): limite de comodato do vendedor excedido.`
+          );
+        }
+      }
+
+      await tx.product.update({
+        where: { id: item.productId },
+        data: { estoqueCentral: { decrement: item.quantidade } },
+      });
+
+      const row = await ensureSellerStockWithTx(tx, vendedorId, item.productId);
+      await tx.sellerProductStock.update({
+        where: { id: row.id },
+        data: { quantidade: { increment: item.quantidade } },
+      });
+
+      const vu =
+        item.valorUnitarioReferencia != null
+          ? item.valorUnitarioReferencia
+          : toNumber(product.precoVendaSugerido);
+      const valorTotal = vu * item.quantidade;
+
+      await tx.movimentacaoEstoque.create({
+        data: {
+          tipoMovimentacao: TipoMovimentacao.ENTREGA_COMODATO,
+          produtoId: item.productId,
+          vendedorId,
+          quantidade: item.quantidade,
+          valorUnitario: vu,
+          valorTotal,
+          observacoes: input.observacoes ?? null,
+          usuarioResponsavelId: input.usuarioId,
+        },
+      });
+    }
+  });
+}
+
 export async function registrarDevolucao(input: {
   vendedorId: string;
   productId: string;
