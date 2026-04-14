@@ -2,10 +2,13 @@ import Link from "next/link";
 import { endOfMonth, format, startOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { prisma } from "@/lib/db";
+import { actionConsumoProprioAdmin } from "@/app/actions/operations";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Field, nativeSelectClassName } from "@/components/forms/form-field";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { formatBRL, formatInt } from "@/lib/utils/format";
 import { FormErrorBanner } from "@/components/forms/form-error-banner";
 import { FormSuccessBanner } from "@/components/forms/form-success-banner";
@@ -79,6 +82,25 @@ export default async function ConsumoProprioAdminPage({
       take: 500,
     }),
   ]);
+  const produtosEmPosse = await prisma.sellerProductStock.findMany({
+    where: { quantidade: { gt: 0 }, seller: { ativo: true } },
+    orderBy: [{ seller: { nome: "asc" } }, { product: { nome: "asc" } }],
+    select: {
+      sellerId: true,
+      quantidade: true,
+      seller: { select: { nome: true } },
+      product: {
+        select: {
+          id: true,
+          nome: true,
+          sku: true,
+          marca: true,
+          sabor: true,
+          custoUnitario: true,
+        },
+      },
+    },
+  });
 
   const totalQtd = rows.reduce((acc, r) => acc + r.quantidade, 0);
   const totalValor = rows.reduce((acc, r) => acc + Number(r.valorTotal), 0);
@@ -102,9 +124,54 @@ export default async function ConsumoProprioAdminPage({
         </Link>
       </div>
       <FormSuccessBanner
-        message={sp.ok === "estorno" ? "Consumo próprio excluído com sucesso." : null}
+        message={
+          sp.ok === "estorno"
+            ? "Consumo próprio excluído com sucesso."
+            : sp.ok === "consumo_add"
+              ? "Consumo próprio lançado manualmente com sucesso."
+              : null
+        }
       />
       <FormErrorBanner message={sp.error ? decodeURIComponent(sp.error) : null} />
+
+      <form
+        action={actionConsumoProprioAdmin}
+        className="grid gap-3 rounded-2xl border border-border/70 bg-card p-4 shadow-[var(--shadow-card)] sm:grid-cols-2"
+      >
+        <input type="hidden" name="redirectAfter" value={redirectAfter} />
+        <Field label="Item em posse (vendedor + produto)" htmlFor="m-seller-product" className="sm:col-span-2">
+          <select
+            id="m-seller-product"
+            name="sellerProduct"
+            required
+            className={nativeSelectClassName}
+          >
+            <option value="">Selecione…</option>
+            {produtosEmPosse.map((r) => (
+              <option
+                key={`${r.sellerId}-${r.product.id}`}
+                value={`${r.sellerId}|${r.product.id}`}
+              >
+                {r.seller.nome} · {r.product.nome}
+                {r.product.marca ? ` · ${r.product.marca}` : ""}
+                {r.product.sabor ? ` · ${r.product.sabor}` : ""}
+                {` (${r.product.sku}) — posse: ${r.quantidade} · custo ${formatBRL(Number(r.product.custoUnitario))}`}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Quantidade" htmlFor="m-qtd">
+          <Input id="m-qtd" name="quantidade" type="number" min={1} required />
+        </Field>
+        <Field label="Observação (opcional)" htmlFor="m-obs" className="sm:col-span-2">
+          <Textarea id="m-obs" name="observacoes" rows={2} />
+        </Field>
+        <div className="sm:col-span-2">
+          <Button type="submit" className="rounded-xl font-semibold">
+            Lançar consumo próprio manual
+          </Button>
+        </div>
+      </form>
 
       <form
         method="get"

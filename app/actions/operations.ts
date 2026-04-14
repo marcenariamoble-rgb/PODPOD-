@@ -7,6 +7,7 @@ import {
   ajusteEstoque,
   entregarComodato,
   entregarComodatoLote,
+  registrarConsumoProprioVendedor,
   registrarDevolucao,
   registrarEntradaManual,
   registrarPerda,
@@ -156,6 +157,39 @@ export async function actionComodato(formData: FormData) {
   revalidatePath("/comodato/estoque");
   revalidatePath("/comodato/operacoes");
   redirect(withParam(redirectAfter, "ok", "1"));
+}
+
+export async function actionConsumoProprioAdmin(formData: FormData) {
+  const redirectAfter =
+    String(formData.get("redirectAfter") ?? "/consumo-proprio").trim() ||
+    "/consumo-proprio";
+  const sellerProductRaw = String(formData.get("sellerProduct") ?? "");
+  const [sellerIdFromPair, productIdFromPair] = sellerProductRaw.split("|");
+  const vendedorId = String(formData.get("vendedorId") ?? sellerIdFromPair ?? "");
+  const productId = String(formData.get("productId") ?? productIdFromPair ?? "");
+  try {
+    await registrarConsumoProprioVendedor({
+      vendedorId,
+      productId,
+      quantidade: Number(formData.get("quantidade")),
+      observacoes: String(formData.get("observacoes") ?? "") || undefined,
+      usuarioId: await getUserId(),
+    });
+  } catch (e) {
+    const msg =
+      e instanceof Error
+        ? e.message
+        : "Não foi possível registrar consumo próprio manual.";
+    redirect(withParam(redirectAfter, "error", msg));
+  }
+
+  revalidatePath("/consumo-proprio");
+  revalidatePath("/vendedor/consumo-proprio");
+  revalidatePath("/vendedor/estoque");
+  revalidatePath("/vendas");
+  revalidatePath("/movimentacoes");
+  revalidatePath("/financeiro");
+  redirect(withParam(redirectAfter, "ok", "consumo_add"));
 }
 
 export async function actionEstornarVenda(formData: FormData) {
