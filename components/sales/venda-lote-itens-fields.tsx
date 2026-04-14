@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -32,11 +32,17 @@ export function VendaLoteItensFields({
   initialRows = 3,
   prefillProductId,
   prefillQuantidade,
+  sellerSelectId,
+  estoqueComodatoPorVendedorProduto,
 }: {
   options: Option[];
   initialRows?: number;
   prefillProductId?: string;
   prefillQuantidade?: number;
+  /** id do select de vendedor no mesmo form (ex.: "vendedorId"). */
+  sellerSelectId?: string;
+  /** Mapa sellerId -> productId -> qtd em comodato. */
+  estoqueComodatoPorVendedorProduto?: Record<string, Record<string, number>>;
 }) {
   const bootRows = useMemo(() => {
     const count = Math.max(1, initialRows);
@@ -51,6 +57,17 @@ export function VendaLoteItensFields({
 
   const [rows, setRows] = useState<Row[]>(bootRows);
   const [seq, setSeq] = useState(rows.length + 1);
+  const [sellerId, setSellerId] = useState("");
+
+  useEffect(() => {
+    if (!sellerSelectId) return;
+    const el = document.getElementById(sellerSelectId) as HTMLSelectElement | null;
+    if (!el) return;
+    const onChange = () => setSellerId(el.value);
+    onChange();
+    el.addEventListener("change", onChange);
+    return () => el.removeEventListener("change", onChange);
+  }, [sellerSelectId]);
 
   function addRow() {
     setRows((prev) => [...prev, makeRow(seq)]);
@@ -90,6 +107,11 @@ export function VendaLoteItensFields({
               {options.map((op) => (
                 <option key={`${row.key}-${op.value}`} value={op.value}>
                   {op.label}
+                  {sellerId && estoqueComodatoPorVendedorProduto ? (
+                    ` — comodato vendedor: ${
+                      estoqueComodatoPorVendedorProduto[sellerId]?.[op.value] ?? 0
+                    } u.`
+                  ) : ""}
                 </option>
               ))}
             </select>

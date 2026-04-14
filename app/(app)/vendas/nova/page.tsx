@@ -29,7 +29,7 @@ export default async function NovaVendaPage({
         nome: true,
         sellerStocks: {
           where: { quantidade: { gt: 0 } },
-          select: { quantidade: true },
+          select: { quantidade: true, productId: true },
         },
       },
     }),
@@ -39,6 +39,12 @@ export default async function NovaVendaPage({
     nome: v.nome,
     totalComodato: v.sellerStocks.reduce((acc, s) => acc + s.quantidade, 0),
   }));
+  const estoqueComodatoPorVendedorProduto = Object.fromEntries(
+    vendedoresRaw.map((v) => [
+      v.id,
+      Object.fromEntries(v.sellerStocks.map((s) => [s.productId, s.quantidade])),
+    ])
+  );
 
   return (
     <div className="mx-auto w-full max-w-lg space-y-6">
@@ -98,6 +104,8 @@ export default async function NovaVendaPage({
                 label: `${p.nome} (${p.sku})`,
               }))}
               initialRows={4}
+              sellerSelectId="vendedorId"
+              estoqueComodatoPorVendedorProduto={estoqueComodatoPorVendedorProduto}
             />
             <Field label="Forma de pagamento" htmlFor="formaPagamento">
               <Input
