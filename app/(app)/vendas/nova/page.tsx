@@ -9,8 +9,7 @@ import { Field, nativeSelectClassName } from "@/components/forms/form-field";
 import { listProdutosAtivos, listVendedoresAtivos } from "@/lib/data/catalog";
 import { FormErrorBanner } from "@/components/forms/form-error-banner";
 import { FormSuccessBanner } from "@/components/forms/form-success-banner";
-
-const LINHAS_LOTE = 8;
+import { VendaLoteItensFields } from "@/components/sales/venda-lote-itens-fields";
 
 export default async function NovaVendaPage({
   searchParams,
@@ -75,33 +74,13 @@ export default async function NovaVendaPage({
                 ))}
               </select>
             </Field>
-            <div className="rounded-xl border border-border/70 bg-muted/20 p-3">
-              <p className="mb-2 text-xs font-medium text-muted-foreground">
-                Preencha vários itens (linhas vazias são ignoradas).
-              </p>
-              <div className="space-y-2">
-                {Array.from({ length: LINHAS_LOTE }).map((_, idx) => (
-                  <div key={idx} className="grid gap-2 sm:grid-cols-[1fr_110px_150px]">
-                    <select name="productId" className={nativeSelectClassName}>
-                      <option value="">Produto #{idx + 1}</option>
-                      {produtos.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.nome} ({p.sku})
-                        </option>
-                      ))}
-                    </select>
-                    <Input name="quantidade" type="number" min={0} placeholder="Qtd" />
-                    <Input
-                      name="valorUnitario"
-                      type="number"
-                      step="0.01"
-                      min={0}
-                      placeholder="Valor unit."
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
+            <VendaLoteItensFields
+              options={produtos.map((p) => ({
+                value: p.id,
+                label: `${p.nome} (${p.sku})`,
+              }))}
+              initialRows={4}
+            />
             <Field label="Forma de pagamento" htmlFor="formaPagamento">
               <Input
                 id="formaPagamento"

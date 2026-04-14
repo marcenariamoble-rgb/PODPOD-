@@ -9,8 +9,7 @@ import { formatBRL } from "@/lib/utils/format";
 import { PodPodEmptyHint } from "@/components/brand/podpod-empty-hint";
 import { FormErrorBanner } from "@/components/forms/form-error-banner";
 import { FormSuccessBanner } from "@/components/forms/form-success-banner";
-
-const LINHAS_LOTE = 8;
+import { VendaLoteItensFields } from "@/components/sales/venda-lote-itens-fields";
 
 export default async function VendedorVenderPage({
   searchParams,
@@ -67,46 +66,19 @@ export default async function VendedorVenderPage({
               estoque só baixa ao confirmar esta venda.
             </p>
           ) : null}
-          <div className="rounded-xl border border-border/70 bg-muted/20 p-3">
-            <p className="mb-2 text-xs font-medium text-muted-foreground">
-              Preencha vários itens (linhas vazias são ignoradas).
-            </p>
-            <div className="space-y-2">
-              {Array.from({ length: LINHAS_LOTE }).map((_, idx) => (
-                <div key={idx} className="grid gap-2 sm:grid-cols-[1fr_95px_135px]">
-                  <select
-                    name="productId"
-                    className={nativeSelectClassName}
-                    defaultValue={idx === 0 && prefillRow ? prefillRow.product.id : ""}
-                  >
-                    <option value="">Produto #{idx + 1}</option>
-                    {rows.map((r) => (
-                      <option key={r.id} value={r.product.id}>
-                        {r.product.nome}
-                        {r.product.marca ? ` · ${r.product.marca}` : ""}
-                        {r.product.sabor ? ` · ${r.product.sabor}` : ""}
-                        {` — ${r.quantidade} u. (sug. ${formatBRL(Number(r.product.precoVendaSugerido))})`}
-                      </option>
-                    ))}
-                  </select>
-                  <Input
-                    name="quantidade"
-                    type="number"
-                    min={0}
-                    defaultValue={idx === 0 ? prefillQuantidade : undefined}
-                    placeholder="Qtd"
-                  />
-                  <Input
-                    name="valorUnitario"
-                    type="number"
-                    step="0.01"
-                    min={0}
-                    placeholder="Valor unit."
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
+          <VendaLoteItensFields
+            options={rows.map((r) => ({
+              value: r.product.id,
+              label:
+                `${r.product.nome}` +
+                `${r.product.marca ? ` · ${r.product.marca}` : ""}` +
+                `${r.product.sabor ? ` · ${r.product.sabor}` : ""}` +
+                ` — ${r.quantidade} u. (sug. ${formatBRL(Number(r.product.precoVendaSugerido))})`,
+            }))}
+            initialRows={4}
+            prefillProductId={prefillRow?.product.id}
+            prefillQuantidade={prefillQuantidade}
+          />
           <Field label="Forma de pagamento" htmlFor="formaPagamento">
             <Input
               id="formaPagamento"
