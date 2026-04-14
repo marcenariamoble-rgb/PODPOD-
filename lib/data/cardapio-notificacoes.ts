@@ -55,6 +55,8 @@ export type NotificacaoCardapioVendedorItem = {
   nomeContato: string | null;
   telefone: string | null;
   observacoes: string | null;
+  /** Indicação direta (pedido só para este vendedor) ou null se pedido geral. */
+  codigoIndicacao: string | null;
   produtoNome: string;
   produtoSku: string;
 };
@@ -84,6 +86,7 @@ export async function listNotificacoesCardapioVendedor(
     nomeContato: r.solicitacao.nomeContato,
     telefone: r.solicitacao.telefone,
     observacoes: r.solicitacao.observacoes,
+    codigoIndicacao: r.solicitacao.codigoIndicacao,
     produtoNome: r.solicitacao.produto.nome,
     produtoSku: r.solicitacao.produto.sku,
   }));

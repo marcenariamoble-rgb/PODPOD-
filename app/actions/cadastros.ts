@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { uploadProductPhotoFromForm } from "@/lib/upload-product-image";
+import { parseCodigoVendaParaGuardar } from "@/lib/utils/codigo-indicacao";
 import { ComissaoVendedorTipo, Prisma, Role } from "@prisma/client";
 
 async function requireUserId() {
@@ -314,9 +315,29 @@ export async function actionCreateSeller(formData: FormData) {
     );
   }
 
+  const codigoParsed = parseCodigoVendaParaGuardar(
+    String(formData.get("codigoVenda") ?? "")
+  );
+  if (!codigoParsed.ok) {
+    redirect("/vendedores/novo?error=" + encodeURIComponent(codigoParsed.error));
+  }
+  if (codigoParsed.value) {
+    const existe = await prisma.seller.findFirst({
+      where: { codigoVenda: codigoParsed.value },
+      select: { id: true },
+    });
+    if (existe) {
+      redirect(
+        "/vendedores/novo?error=" +
+          encodeURIComponent("Este código de venda já está em uso por outro vendedor.")
+      );
+    }
+  }
+
   await prisma.seller.create({
     data: {
       nome,
+      codigoVenda: codigoParsed.value,
       telefone,
       cidade,
       regiao,
@@ -367,10 +388,30 @@ export async function actionUpdateSeller(formData: FormData) {
     redirect(`/vendedores/${id}?error=` + encodeURIComponent(comissao.error));
   }
 
+  const codigoParsed = parseCodigoVendaParaGuardar(
+    String(formData.get("codigoVenda") ?? "")
+  );
+  if (!codigoParsed.ok) {
+    redirect(`/vendedores/${id}?error=` + encodeURIComponent(codigoParsed.error));
+  }
+  if (codigoParsed.value) {
+    const existe = await prisma.seller.findFirst({
+      where: { codigoVenda: codigoParsed.value, NOT: { id } },
+      select: { id: true },
+    });
+    if (existe) {
+      redirect(
+        `/vendedores/${id}?error=` +
+          encodeURIComponent("Este código de venda já está em uso por outro vendedor.")
+      );
+    }
+  }
+
   await prisma.seller.update({
     where: { id },
     data: {
       nome,
+      codigoVenda: codigoParsed.value,
       telefone,
       cidade,
       regiao,

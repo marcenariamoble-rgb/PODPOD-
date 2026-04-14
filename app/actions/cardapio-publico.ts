@@ -3,8 +3,32 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { Role } from "@prisma/client";
+import { resolveCodigoIndicacaoPedido } from "@/lib/utils/codigo-indicacao";
 
-async function notificarVendedoresPedidoCardapio(solicitacaoCardapioId: string) {
+async function notificarVendedoresPedidoCardapio(
+  solicitacaoCardapioId: string,
+  codigoIndicacao: string | null
+) {
+  const codigo = codigoIndicacao;
+
+  if (codigo) {
+    const direct = await prisma.seller.findFirst({
+      where: {
+        codigoVenda: codigo,
+        ativo: true,
+        user: { is: { role: Role.VENDEDOR, ativo: true } },
+      },
+      select: { id: true },
+    });
+    if (direct) {
+      await prisma.notificacaoSolicitacaoCardapio.createMany({
+        data: [{ solicitacaoCardapioId, sellerId: direct.id }],
+        skipDuplicates: true,
+      });
+      return;
+    }
+  }
+
   const destinosConfigurados = await prisma.cardapioAlertaVendedor.findMany({
     where: {
       seller: {
@@ -50,6 +74,9 @@ export async function actionPedirCardapio(
   const nomeContato = String(formData.get("nomeContato") ?? "").trim();
   const telefone = String(formData.get("telefone") ?? "").trim();
   const observacoes = String(formData.get("observacoes") ?? "").trim();
+  const codigoIndicacao = resolveCodigoIndicacaoPedido(
+    String(formData.get("codigoIndicacao") ?? "")
+  );
 
   if (!productId) {
     return { ok: false, message: "Produto inválido." };
@@ -94,11 +121,12 @@ export async function actionPedirCardapio(
       nomeContato: nomeContato || null,
       telefone: telefone || null,
       observacoes: observacoes || null,
+      codigoIndicacao,
     },
     select: { id: true },
   });
 
-  await notificarVendedoresPedidoCardapio(criada.id);
+  await notificarVendedoresPedidoCardapio(criada.id, codigoIndicacao);
 
   revalidatePath("/pedidos-cardapio");
   revalidatePath("/pedidos-cardapio/alertas");

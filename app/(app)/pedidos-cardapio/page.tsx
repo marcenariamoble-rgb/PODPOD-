@@ -93,6 +93,7 @@ export default async function PedidosCardapioPage() {
                 <TableHead>Data</TableHead>
                 <TableHead>Produto</TableHead>
                 <TableHead className="tabular-nums">Qtd</TableHead>
+                <TableHead>Indicação</TableHead>
                 <TableHead>Contacto</TableHead>
                 <TableHead>Observações</TableHead>
                 <TableHead className="w-[1%] text-end">Estado</TableHead>
@@ -119,6 +120,15 @@ export default async function PedidosCardapioPage() {
                     </span>
                   </TableCell>
                   <TableCell className="tabular-nums">{r.quantidade}</TableCell>
+                  <TableCell className="max-w-[120px]">
+                    {r.codigoIndicacao ? (
+                      <span className="font-mono text-xs font-semibold text-primary">
+                        {r.codigoIndicacao}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Geral</span>
+                    )}
+                  </TableCell>
                   <TableCell className="max-w-[min(280px,100%)]">
                     <div className="flex flex-col gap-2">
                       <span className="text-sm break-words">

@@ -28,6 +28,16 @@ export default async function VendedorHomePage() {
         <p className="mt-1 text-sm font-medium text-muted-foreground">
           O seu estoque, vendas e pedidos do cardápio
         </p>
+        {seller?.codigoVenda ? (
+          <p className="mt-2 max-w-xl rounded-xl border border-border/70 bg-muted/25 px-3 py-2 text-xs font-medium leading-relaxed text-muted-foreground">
+            <span className="text-foreground">Indicação direta: </span>
+            partilhe o link{" "}
+            <code className="rounded bg-muted px-1 py-0.5 font-mono text-[11px] text-foreground">
+              /cardapio?codigo={seller.codigoVenda}
+            </code>{" "}
+            — só o seu painel recebe o aviso dos pedidos feitos com este código.
+          </p>
+        ) : null}
       </div>
 
       {pedidosNovos > 0 ? (

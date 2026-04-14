@@ -51,6 +51,19 @@ export default async function NovoVendedorPage({
             <Field label="Telefone" htmlFor="telefone">
               <Input id="telefone" name="telefone" type="tel" placeholder="Opcional" />
             </Field>
+            <Field label="Código de venda (cardápio)" htmlFor="codigoVenda">
+              <Input
+                id="codigoVenda"
+                name="codigoVenda"
+                autoComplete="off"
+                placeholder="Ex.: 1024 — link /cardapio?codigo=… (opcional)"
+                className="font-mono"
+              />
+              <p className="mt-1 text-xs font-medium text-muted-foreground">
+                Único na equipa. Com código, pedidos pelo cardápio só avisam este vendedor.
+                Sem código no link, o pedido notifica todos (conforme alertas).
+              </p>
+            </Field>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Cidade" htmlFor="cidade">
                 <Input id="cidade" name="cidade" />

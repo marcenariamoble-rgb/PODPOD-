@@ -73,6 +73,7 @@ export default async function VendedoresPage({
           <TableHeader>
             <TableRow>
               <TableHead>Nome</TableHead>
+              <TableHead className="hidden md:table-cell w-[100px]">Cód. cardápio</TableHead>
               <TableHead className="hidden sm:table-cell">Cidade</TableHead>
               <TableHead className="text-right">A receber</TableHead>
               <TableHead>Status</TableHead>
@@ -85,6 +86,9 @@ export default async function VendedoresPage({
               return (
                 <TableRow key={v.id}>
                   <TableCell className="font-medium">{v.nome}</TableCell>
+                  <TableCell className="hidden md:table-cell font-mono text-xs text-muted-foreground">
+                    {v.codigoVenda ?? "—"}
+                  </TableCell>
                   <TableCell className="hidden sm:table-cell text-muted-foreground">
                     {v.cidade ?? "—"}
                   </TableCell>

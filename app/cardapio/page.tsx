@@ -20,12 +20,18 @@ function isPublicImageUrl(url: string) {
 export default async function CardapioPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; categoria?: string; marca?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    categoria?: string;
+    marca?: string;
+    codigo?: string;
+  }>;
 }) {
   const sp = await searchParams;
   const q = (sp.q ?? "").trim().toLowerCase();
   const catFiltro = (sp.categoria ?? "").trim();
   const marcaFiltro = (sp.marca ?? "").trim();
+  const codigoIndicacao = (sp.codigo ?? "").trim();
 
   const todos = await listProdutosCardapio();
   const categorias = Array.from(
@@ -68,12 +74,22 @@ export default async function CardapioPage({
         <p className="text-sm font-medium text-muted-foreground">
           Consulte o catálogo atualizado. Filtre por marca, categoria ou texto (nome, SKU…).
         </p>
+        {codigoIndicacao ? (
+          <p className="text-sm font-medium text-primary">
+            Pedido com indicação direta (código:{" "}
+            <span className="font-mono font-semibold">{codigoIndicacao}</span>). Só esse
+            parceiro recebe o aviso deste pedido.
+          </p>
+        ) : null}
       </div>
 
       <form
         method="get"
         className="mb-8 flex flex-col gap-3 rounded-2xl border border-border/70 bg-card p-4 shadow-[var(--shadow-card)] sm:flex-row sm:flex-wrap sm:items-end"
       >
+        {codigoIndicacao ? (
+          <input type="hidden" name="codigo" value={codigoIndicacao} />
+        ) : null}
         <Field label="Procurar" htmlFor="cardapio-q" className="min-w-[200px] flex-1">
           <input
             id="cardapio-q"
@@ -218,6 +234,7 @@ export default async function CardapioPage({
                               productLabel={label}
                               disponivel={p.disponivel}
                               estoqueCentral={p.estoqueCentral}
+                              codigoIndicacaoInicial={codigoIndicacao}
                             />
                           </div>
                         </div>

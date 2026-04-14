@@ -25,9 +25,11 @@ export default async function PedidosCardapioAlertasPage() {
             Notificações para vendedores
           </h1>
           <p className="mt-2 max-w-xl text-sm font-medium text-muted-foreground">
-            Escolha quem recebe um alerta na área do vendedor sempre que alguém
-            pedir um produto pelo cardápio público. O vendedor recebe aviso no
-            portal e pode abrir o WhatsApp do cliente em Pedidos do cardápio.
+            Escolha quem recebe um alerta na área do vendedor quando alguém pede
+            pelo cardápio <strong className="font-semibold text-foreground">sem</strong> código
+            de indicação direta. Se o cliente usar{" "}
+            <code className="rounded bg-muted px-1 py-0.5 text-[13px]">/cardapio?codigo=…</code>
+            , só o vendedor desse código é notificado (esta lista não se aplica).
           </p>
         </div>
       </div>

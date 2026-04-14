@@ -102,6 +102,8 @@ model SolicitacaoCardapio {
   nomeContato   String?
   telefone      String?
   observacoes   String?
+  /// Código de indicação (URL `?codigo=`). Vazio = pedido geral (notifica todos).
+  codigoIndicacao String?
   visualizado   Boolean  @default(false)
   createdAt     DateTime @default(now())
 
@@ -137,6 +139,8 @@ model NotificacaoSolicitacaoCardapio {
 model Seller {
   id             String   @id @default(cuid())
   nome           String
+  /// Código único para indicação direta no cardápio público (`/cardapio?codigo=`).
+  codigoVenda    String?  @unique
   telefone       String?
   cidade         String?
   regiao         String?

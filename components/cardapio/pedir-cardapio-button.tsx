@@ -26,12 +26,15 @@ type Props = {
   disponivel: boolean;
   /** Stock central atual (para limitar quantidade no formulário). */
   estoqueCentral: number;
+  /** Código de indicação (URL `?codigo=` ou preenchimento manual). */
+  codigoIndicacaoInicial?: string;
 };
 
 function PedirCardapioForm({
   productId,
   productLabel,
   estoqueCentral,
+  codigoIndicacaoInicial,
   onCancel,
   onSuccess,
 }: Props & { onCancel: () => void; onSuccess: () => void }) {
@@ -81,6 +84,18 @@ function PedirCardapioForm({
           placeholder="Horário preferido, local de entrega…"
         />
       </Field>
+      <Field
+        label="Código de indicação (opcional)"
+        htmlFor={`codigo-${productId}`}
+      >
+        <Input
+          id={`codigo-${productId}`}
+          name="codigoIndicacao"
+          autoComplete="off"
+          placeholder="Se lhe passaram um código de vendedor, introduza-o aqui"
+          defaultValue={codigoIndicacaoInicial ?? ""}
+        />
+      </Field>
       {state && !state.ok ? (
         <p className="text-sm font-medium text-destructive" role="alert">
           {state.message}
@@ -117,6 +132,7 @@ export function PedirCardapioButton({
   productLabel,
   disponivel,
   estoqueCentral,
+  codigoIndicacaoInicial,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [formKey, setFormKey] = useState(0);
@@ -170,6 +186,7 @@ export function PedirCardapioButton({
           productLabel={productLabel}
           disponivel={disponivel}
           estoqueCentral={estoqueCentral}
+          codigoIndicacaoInicial={codigoIndicacaoInicial}
           onCancel={onCancel}
           onSuccess={onSuccess}
         />

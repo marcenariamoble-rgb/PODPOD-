@@ -134,6 +134,23 @@ export default async function VendedorDetalhePage({
                 defaultValue={seller.telefone ?? ""}
               />
             </Field>
+            <Field label="Código de venda (cardápio)" htmlFor="codigoVenda">
+              <Input
+                id="codigoVenda"
+                name="codigoVenda"
+                autoComplete="off"
+                defaultValue={seller.codigoVenda ?? ""}
+                placeholder="Ex.: 1024"
+                className="font-mono"
+              />
+              <p className="mt-1 text-xs font-medium text-muted-foreground">
+                Único na equipa. Com{" "}
+                <code className="rounded bg-muted px-1 py-0.5 text-[11px]">
+                  /cardapio?codigo=…
+                </code>{" "}
+                só este vendedor recebe o aviso. Vazio = não usa indicação direta.
+              </p>
+            </Field>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Cidade" htmlFor="cidade">
                 <Input id="cidade" name="cidade" defaultValue={seller.cidade ?? ""} />

@@ -100,15 +100,25 @@ export default async function VendedorPedidosCardapioPage() {
                       {n.produtoSku}
                     </p>
                   </div>
-                  {!n.lida ? (
-                    <Badge variant="default" className="shrink-0 rounded-lg font-semibold">
-                      Novo
-                    </Badge>
-                  ) : (
-                    <Badge variant="secondary" className="shrink-0 rounded-lg">
-                      Lido
-                    </Badge>
-                  )}
+                  <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+                    {n.codigoIndicacao ? (
+                      <Badge
+                        variant="outline"
+                        className="rounded-lg border-primary/40 font-semibold text-primary"
+                      >
+                        Indicação direta
+                      </Badge>
+                    ) : null}
+                    {!n.lida ? (
+                      <Badge variant="default" className="rounded-lg font-semibold">
+                        Novo
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary" className="rounded-lg">
+                        Lido
+                      </Badge>
+                    )}
+                  </div>
                 </div>
                 <p className="mt-2 text-xs tabular-nums text-muted-foreground">
                   {format(n.createdAt, "d MMM yyyy · HH:mm", { locale: ptBR })} · Qtd.{" "}
