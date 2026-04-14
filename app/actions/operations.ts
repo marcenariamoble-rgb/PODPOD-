@@ -33,33 +33,62 @@ export async function actionEntradaManual(formData: FormData) {
   const redirectAfter =
     String(formData.get("redirectAfter") ?? "/estoque/entrada").trim() ||
     "/estoque/entrada";
-  const productId = String(formData.get("productId") ?? "");
-  const quantidade = Number(formData.get("quantidade"));
   const observacoes = String(formData.get("observacoes") ?? "") || undefined;
-  const custoRaw = String(formData.get("custoUnitario") ?? "").trim();
-  const custoUnitario =
-    custoRaw === "" ? null : Number(custoRaw.replace(",", "."));
-  try {
-    await registrarEntradaManual({
-      productId,
-      quantidade,
-      observacoes,
-      custoUnitario:
-        custoUnitario != null && !Number.isNaN(custoUnitario) && custoUnitario >= 0
-          ? custoUnitario
-          : null,
-      usuarioId: await getUserId(),
+  const productIds = formData.getAll("productId").map((v) => String(v ?? "").trim());
+  const quantidades = formData
+    .getAll("quantidade")
+    .map((v) => Math.floor(Number(v)))
+    .map((n) => (Number.isFinite(n) ? n : 0));
+  const custos = formData
+    .getAll("custoUnitario")
+    .map((v) => String(v ?? "").trim())
+    .map((raw) => {
+      if (raw === "") return null;
+      const n = Number(raw.replace(",", "."));
+      return Number.isFinite(n) ? n : Number.NaN;
     });
+
+  const itens = productIds
+    .map((productId, i) => ({
+      productId,
+      quantidade: quantidades[i] ?? 0,
+      custoUnitario: custos[i] ?? null,
+    }))
+    .filter((i) => i.productId && i.quantidade > 0);
+
+  if (itens.length === 0) {
+    redirect(withParam(redirectAfter, "error", "Informe ao menos um item para entrada."));
+  }
+  if (itens.some((i) => i.custoUnitario != null && (!Number.isFinite(i.custoUnitario) || i.custoUnitario < 0))) {
+    redirect(withParam(redirectAfter, "error", "Custo unitário inválido em uma das linhas."));
+  }
+
+  try {
+    const userId = await getUserId();
+    for (let i = 0; i < itens.length; i += 1) {
+      const item = itens[i];
+      await registrarEntradaManual({
+        productId: item.productId,
+        quantidade: item.quantidade,
+        observacoes: observacoes ? `[Lote ${i + 1}] ${observacoes}` : undefined,
+        custoUnitario:
+          item.custoUnitario != null && !Number.isNaN(item.custoUnitario)
+            ? item.custoUnitario
+            : null,
+        usuarioId: userId,
+      });
+    }
   } catch (e) {
     const msg =
       e instanceof Error ? e.message : "Não foi possível registrar a entrada.";
     redirect(withParam(redirectAfter, "error", msg));
   }
   revalidatePath("/produtos");
-  revalidatePath(`/produtos/${productId}`);
   revalidatePath("/movimentacoes");
   revalidatePath("/dashboard");
   revalidatePath("/estoque/entrada");
+  revalidatePath("/comodato/estoque");
+  revalidatePath("/cardapio");
   redirect(withParam(redirectAfter, "ok", "1"));
 }
 

@@ -37,30 +37,41 @@ import {
 } from "@/components/ui/sheet";
 import { signOut } from "next-auth/react";
 
-const mainNav = [
-  { href: "/dashboard", label: "Painel", icon: LayoutDashboard },
-  { href: "/pedidos-cardapio", label: "Pedidos cardápio", icon: ClipboardList },
-  { href: "/vendas", label: "Vendas", icon: Receipt },
-  { href: "/consumo-proprio", label: "Consumo próprio", icon: Coffee },
-  { href: "/financeiro", label: "Financeiro", icon: Landmark },
-  { href: "/produtos", label: "Produtos", icon: Package },
-  { href: "/vendedores", label: "Vendedores", icon: Users },
-  { href: "/usuarios", label: "Utilizadores", icon: UserCog },
-];
+type NavItem = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  end?: boolean;
+};
 
-/** Estoque e comodato; vendas ficam no painel /vendas. */
-const operacoesAgrupadas = [
+const menuGroups: Array<{ id: string; title: string; items: NavItem[] }> = [
   {
-    title: "Estoque",
+    id: "operacao",
+    title: "Operação",
+    items: [
+      { href: "/dashboard", label: "Painel", icon: LayoutDashboard },
+      { href: "/pedidos-cardapio", label: "Pedidos cardápio", icon: ClipboardList },
+      { href: "/vendas", label: "Vendas", icon: Receipt },
+      { href: "/consumo-proprio", label: "Consumo próprio", icon: Coffee },
+      { href: "/financeiro", label: "Financeiro", icon: Landmark },
+    ],
+  },
+  {
+    id: "cadastros",
+    title: "Cadastros",
+    items: [
+      { href: "/produtos", label: "Produtos", icon: Package },
+      { href: "/vendedores", label: "Vendedores", icon: Users },
+      { href: "/usuarios", label: "Utilizadores", icon: UserCog },
+    ],
+  },
+  {
+    id: "estoque-comodato",
+    title: "Estoque e comodato",
     items: [
       { href: "/estoque/entrada", label: "Nova entrada", icon: PackagePlus },
       { href: "/movimentacoes/saida", label: "Saída manual", icon: ArrowDownToLine },
       { href: "/movimentacoes", label: "Movimentações", icon: ArrowLeftRight },
-    ],
-  },
-  {
-    title: "Comodato",
-    items: [
       { href: "/comodato", label: "Entrega comodato", icon: Truck, end: true },
       { href: "/comodato/estoque", label: "Estoque em comodato", icon: Boxes },
       {
@@ -71,6 +82,7 @@ const operacoesAgrupadas = [
     ],
   },
   {
+    id: "consultas",
     title: "Consultas",
     items: [
       { href: "/relatorios", label: "Relatórios", icon: FileBarChart },
@@ -78,6 +90,13 @@ const operacoesAgrupadas = [
     ],
   },
 ];
+
+const mobileMain = [
+  { href: "/dashboard", label: "Painel", icon: LayoutDashboard },
+  { href: "/pedidos-cardapio", label: "Pedidos", icon: ClipboardList },
+  { href: "/vendas", label: "Vendas", icon: Receipt },
+  { href: "__more__", label: "Menu", icon: Menu },
+] as const;
 
 function NavLink({
   href,
@@ -123,57 +142,55 @@ function NavLink({
   );
 }
 
-function SidebarQuickOps() {
-  const [open, setOpen] = useState(true);
+function GroupedSidebarNav() {
+  const pathname = usePathname();
+  const groupWithActive =
+    menuGroups.find((g) =>
+      g.items.some((item) =>
+        item.end
+          ? pathname === item.href
+          : pathname === item.href || pathname.startsWith(`${item.href}/`)
+      )
+    )?.id ?? menuGroups[0].id;
+  const [openGroup, setOpenGroup] = useState(groupWithActive);
 
   return (
-    <div className="mt-1.5 border-t border-sidebar-border/55 pt-2">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className={cn(
-          "flex w-full items-center justify-between gap-1 rounded-md px-2 py-1 text-left text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/90",
-          "outline-none transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-          "focus-visible:ring-2 focus-visible:ring-ring/50"
-        )}
-        aria-expanded={open}
-      >
-        Operações rápidas
-        <ChevronDown
-          className={cn(
-            "size-3.5 shrink-0 opacity-80 transition-transform duration-200",
-            open && "rotate-180"
-          )}
-          aria-hidden
-        />
-      </button>
-      {open ? (
-        <div className="mt-1 space-y-2">
-          {operacoesAgrupadas.map((group) => (
-            <div key={group.title} className="space-y-0.5">
-              <p className="px-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/80">
-                {group.title}
-              </p>
-              {group.items.map((item) => (
-                <NavLink key={item.href} {...item} />
-              ))}
-            </div>
-          ))}
-        </div>
-      ) : null}
+    <div className="space-y-1.5">
+      {menuGroups.map((group) => {
+        const isOpen = openGroup === group.id;
+        return (
+          <div key={group.id} className="rounded-lg border border-sidebar-border/50 bg-sidebar/40">
+            <button
+              type="button"
+              onClick={() => setOpenGroup((prev) => (prev === group.id ? "" : group.id))}
+              className={cn(
+                "flex w-full items-center justify-between gap-2 px-2.5 py-2 text-left",
+                "text-[10px] font-semibold uppercase tracking-wide text-muted-foreground",
+                "transition-colors hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground"
+              )}
+              aria-expanded={isOpen}
+            >
+              {group.title}
+              <ChevronDown
+                className={cn("size-3.5 shrink-0 transition-transform", isOpen && "rotate-180")}
+              />
+            </button>
+            {isOpen ? (
+              <div className="space-y-0.5 border-t border-sidebar-border/50 p-1.5">
+                {group.items.map((item) => (
+                  <NavLink key={item.href} {...item} />
+                ))}
+              </div>
+            ) : null}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-
-  const mobileMain = [
-    mainNav[0],
-    mainNav[1],
-    mainNav[3],
-    { href: "__more__", label: "Menu", icon: Menu },
-  ] as const; // Painel, Vendas, Produtos, Menu (Financeiro fica no menu completo)
 
   return (
     <div className="flex min-h-dvh w-full app-canvas">
@@ -198,10 +215,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <p className="mb-0.5 px-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/85">
             Menu
           </p>
-          {mainNav.map((item) => (
-            <NavLink key={item.href} {...item} />
-          ))}
-          <SidebarQuickOps />
+          <GroupedSidebarNav />
         </nav>
         <div className="shrink-0 space-y-2 border-t border-sidebar-border/70 p-2.5">
           <Link
@@ -248,10 +262,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <p className="mb-0.5 px-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/85">
                   Navegação
                 </p>
-                {mainNav.map((item) => (
-                  <NavLink key={item.href} {...item} />
-                ))}
-                <SidebarQuickOps />
+                <GroupedSidebarNav />
                 <Button
                   variant="outline"
                   size="sm"
@@ -314,7 +325,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         </span>
                         Financeiro
                       </Link>
-                      {operacoesAgrupadas.flatMap((g) => g.items).map((op) => (
+                      {menuGroups.flatMap((g) => g.items).map((op) => (
                         <Link
                           key={op.href}
                           href={op.href}
