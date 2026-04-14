@@ -5,7 +5,6 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import {
   ajusteEstoque,
-  entregarComodato,
   entregarComodatoLote,
   registrarConsumoProprioVendedor,
   registrarDevolucao,
@@ -27,6 +26,11 @@ async function getUserId() {
 function withParam(path: string, key: string, value: string) {
   const sep = path.includes("?") ? "&" : "?";
   return `${path}${sep}${key}=${encodeURIComponent(value)}`;
+}
+
+function parsePositiveInt(raw: FormDataEntryValue | null): number {
+  const n = Math.floor(Number(raw));
+  return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
 export async function actionEntradaManual(formData: FormData) {
@@ -97,7 +101,7 @@ export async function actionSaidaManual(formData: FormData) {
     String(formData.get("redirectAfter") ?? "/movimentacoes/saida").trim() ||
     "/movimentacoes/saida";
   const productId = String(formData.get("productId") ?? "");
-  const quantidade = Number(formData.get("quantidade"));
+  const quantidade = parsePositiveInt(formData.get("quantidade"));
   const observacoes = String(formData.get("observacoes") ?? "") || undefined;
   const vuRaw = String(formData.get("valorUnitario") ?? "").trim();
   const valorUnitario =
@@ -123,6 +127,7 @@ export async function actionSaidaManual(formData: FormData) {
   revalidatePath("/movimentacoes");
   revalidatePath("/dashboard");
   revalidatePath("/movimentacoes/saida");
+  revalidatePath("/cardapio");
   redirect(withParam(redirectAfter, "ok", "1"));
 }
 
@@ -155,7 +160,7 @@ export async function actionComodato(formData: FormData) {
   const redirectAfter =
     String(formData.get("redirectAfter") ?? "/comodato").trim() || "/comodato";
   const productIds = formData.getAll("productId").map((v) => String(v ?? ""));
-  const quantidades = formData.getAll("quantidade").map((v) => Number(v));
+  const quantidades = formData.getAll("quantidade").map((v) => parsePositiveInt(v));
   const valores = formData
     .getAll("valorUnitario")
     .map((v) => String(v ?? "").trim())
@@ -200,7 +205,7 @@ export async function actionConsumoProprioAdmin(formData: FormData) {
     await registrarConsumoProprioVendedor({
       vendedorId,
       productId,
-      quantidade: Number(formData.get("quantidade")),
+      quantidade: parsePositiveInt(formData.get("quantidade")),
       observacoes: String(formData.get("observacoes") ?? "") || undefined,
       usuarioId: await getUserId(),
     });
@@ -218,6 +223,7 @@ export async function actionConsumoProprioAdmin(formData: FormData) {
   revalidatePath("/vendas");
   revalidatePath("/movimentacoes");
   revalidatePath("/financeiro");
+  revalidatePath("/cardapio");
   redirect(withParam(redirectAfter, "ok", "consumo_add"));
 }
 
@@ -277,7 +283,7 @@ export async function actionVenda(formData: FormData) {
     }))
     .filter((i) => i.productId && i.quantidade > 0);
 
-  if (itens.some((i) => !Number.isFinite(i.valorUnitario) || i.valorUnitario < 0)) {
+  if (itens.some((i) => !Number.isFinite(i.valorUnitario))) {
     redirect(
       withParam(
         redirectAfter,
@@ -285,6 +291,9 @@ export async function actionVenda(formData: FormData) {
         "Informe o valor unitário para todos os itens preenchidos."
       )
     );
+  }
+  if (itens.some((i) => i.valorUnitario < 0)) {
+    redirect(withParam(redirectAfter, "error", "Valor unitário não pode ser negativo."));
   }
 
   if (itens.length === 0) {
@@ -315,6 +324,7 @@ export async function actionVenda(formData: FormData) {
   revalidatePath("/movimentacoes");
   revalidatePath("/produtos");
   revalidatePath("/financeiro");
+  revalidatePath("/cardapio");
   redirect(withParam(redirectAfter, "ok", "1"));
 }
 
@@ -322,7 +332,7 @@ export async function actionDevolucao(formData: FormData) {
   await registrarDevolucao({
     vendedorId: String(formData.get("vendedorId") ?? ""),
     productId: String(formData.get("productId") ?? ""),
-    quantidade: Number(formData.get("quantidade")),
+    quantidade: parsePositiveInt(formData.get("quantidade")),
     observacoes: String(formData.get("observacoes") ?? "") || undefined,
     usuarioId: await getUserId(),
   });
@@ -335,6 +345,7 @@ export async function actionDevolucao(formData: FormData) {
   revalidatePath("/comodato/operacoes");
   revalidatePath("/vendas");
   revalidatePath("/financeiro");
+  revalidatePath("/cardapio");
 }
 
 export async function actionRecebimento(formData: FormData) {
@@ -355,7 +366,7 @@ export async function actionPerda(formData: FormData) {
   await registrarPerda({
     productId: String(formData.get("productId") ?? ""),
     vendedorId: v && String(v) !== "" ? String(v) : null,
-    quantidade: Number(formData.get("quantidade")),
+    quantidade: parsePositiveInt(formData.get("quantidade")),
     observacoes: String(formData.get("observacoes") ?? "") || undefined,
     usuarioId: await getUserId(),
   });
@@ -363,4 +374,5 @@ export async function actionPerda(formData: FormData) {
   revalidatePath("/produtos");
   revalidatePath("/vendedores");
   revalidatePath("/movimentacoes");
+  revalidatePath("/cardapio");
 }

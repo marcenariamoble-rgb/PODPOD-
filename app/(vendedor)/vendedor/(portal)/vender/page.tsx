@@ -4,7 +4,7 @@ import { actionVendaPortal } from "@/app/actions/vendedor-portal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Field, nativeSelectClassName } from "@/components/forms/form-field";
+import { Field } from "@/components/forms/form-field";
 import { formatBRL } from "@/lib/utils/format";
 import { PodPodEmptyHint } from "@/components/brand/podpod-empty-hint";
 import { FormErrorBanner } from "@/components/forms/form-error-banner";

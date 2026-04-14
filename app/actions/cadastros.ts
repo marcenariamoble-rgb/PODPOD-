@@ -17,7 +17,11 @@ async function requireUserId() {
 
 function parseMoney(raw: string | null | undefined): Prisma.Decimal | null {
   if (raw == null || String(raw).trim() === "") return null;
-  const n = Number(String(raw).replace(",", "."));
+  const text = String(raw).trim().replace(/\s+/g, "");
+  const normalized = text.includes(",")
+    ? text.replace(/\./g, "").replace(",", ".")
+    : text;
+  const n = Number(normalized);
   if (Number.isNaN(n) || n < 0) return null;
   return new Prisma.Decimal(n.toFixed(2));
 }
@@ -167,6 +171,7 @@ export async function actionCreateProduct(formData: FormData) {
   }
 
   revalidatePath("/produtos");
+  revalidatePath("/cardapio");
   redirect("/produtos");
 }
 
@@ -231,6 +236,7 @@ export async function actionUpdateProduct(formData: FormData) {
 
   revalidatePath("/produtos");
   revalidatePath(`/produtos/${id}`);
+  revalidatePath("/cardapio");
   redirect(`/produtos/${id}`);
 }
 
@@ -246,6 +252,7 @@ export async function actionToggleProductAtivo(formData: FormData) {
   });
   revalidatePath("/produtos");
   revalidatePath(`/produtos/${id}`);
+  revalidatePath("/cardapio");
   redirect(`/produtos/${id}`);
 }
 
@@ -283,6 +290,7 @@ export async function actionDeleteProduct(formData: FormData) {
   revalidatePath("/dashboard");
   revalidatePath("/vendedores");
   revalidatePath("/estoque/entrada");
+  revalidatePath("/cardapio");
   redirect("/produtos?deleted=1");
 }
 

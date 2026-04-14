@@ -14,6 +14,11 @@ function withParam(path: string, key: string, value: string) {
   return `${path}${sep}${key}=${encodeURIComponent(value)}`;
 }
 
+function parsePositiveInt(raw: FormDataEntryValue | null): number {
+  const n = Math.floor(Number(raw));
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
 async function assertVendedorSession() {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Não autenticado.");
@@ -55,7 +60,7 @@ export async function actionVendaPortal(formData: FormData) {
     }))
     .filter((i) => i.productId && i.quantidade > 0);
 
-  if (itens.some((i) => !Number.isFinite(i.valorUnitario) || i.valorUnitario < 0)) {
+  if (itens.some((i) => !Number.isFinite(i.valorUnitario))) {
     redirect(
       withParam(
         redirectAfter,
@@ -63,6 +68,9 @@ export async function actionVendaPortal(formData: FormData) {
         "Informe o valor unitário para todos os itens preenchidos."
       )
     );
+  }
+  if (itens.some((i) => i.valorUnitario < 0)) {
+    redirect(withParam(redirectAfter, "error", "Valor unitário não pode ser negativo."));
   }
 
   if (itens.length === 0) {
@@ -91,6 +99,7 @@ export async function actionVendaPortal(formData: FormData) {
   revalidatePath("/vendedor/vender");
   revalidatePath("/vendas");
   revalidatePath("/financeiro");
+  revalidatePath("/cardapio");
   redirect(withParam(redirectAfter, "ok", "1"));
 }
 
@@ -99,7 +108,7 @@ export async function actionDevolucaoPortal(formData: FormData) {
   await registrarDevolucao({
     vendedorId: sellerId,
     productId: String(formData.get("productId") ?? ""),
-    quantidade: Number(formData.get("quantidade")),
+    quantidade: parsePositiveInt(formData.get("quantidade")),
     observacoes: String(formData.get("observacoes") ?? "") || undefined,
     usuarioId: userId,
   });
@@ -124,7 +133,7 @@ export async function actionConsumoProprioPortal(formData: FormData) {
     await registrarConsumoProprioVendedor({
       vendedorId: sellerId,
       productId: String(formData.get("productId") ?? ""),
-      quantidade: Number(formData.get("quantidade")),
+      quantidade: parsePositiveInt(formData.get("quantidade")),
       observacoes: String(formData.get("observacoes") ?? "") || undefined,
       usuarioId: userId,
     });
@@ -140,5 +149,6 @@ export async function actionConsumoProprioPortal(formData: FormData) {
   revalidatePath("/vendedor/consumo-proprio");
   revalidatePath("/vendas");
   revalidatePath("/financeiro");
+  revalidatePath("/cardapio");
   redirect(withParam(redirectAfter, "ok", "1"));
 }
