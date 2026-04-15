@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { VendedorPedidosCardapioPoller } from "@/components/vendedor/vendedor-pedidos-cardapio-poller";
 import { VendedorNotificacoesOptIn } from "@/components/vendedor/vendedor-notificacoes-opt-in";
+import { VendedorInstallPrompt } from "@/components/pwa/vendedor-install-prompt";
 
 const nav = [
   { href: "/vendedor", label: "Início", icon: Home, end: true },
@@ -152,6 +153,7 @@ export function VendedorShell({
       </header>
 
       <main className="mx-auto w-full max-w-lg flex-1 px-4 py-5">
+        <VendedorInstallPrompt />
         <VendedorNotificacoesOptIn />
         {children}
       </main>

@@ -1,5 +1,5 @@
-/* PodPod — Service Worker (v3: ícones dedicados + bust de cache) */
-const CACHE = "podpod-pwa-v3";
+/* PodPod — Service Worker (v4: vendedor start_url + cache bust) */
+const CACHE = "podpod-pwa-v4";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -8,6 +8,7 @@ self.addEventListener("install", (event) => {
       .then((cache) =>
         cache
           .addAll([
+            "/vendedor",
             "/vendedor/offline",
             "/manifest.json",
             "/icon-192.png",
