@@ -27,13 +27,57 @@ export function VendedorNotificacoesOptIn() {
   );
   const [message, setMessage] = useState("");
 
+  async function ensurePushSubscription() {
+    if (typeof Notification === "undefined" || !("serviceWorker" in navigator)) {
+      setMessage("Este dispositivo não suporta notificações push.");
+      return false;
+    }
+
+    const keyRes = await fetch("/api/vendedor/push-subscriptions", {
+      method: "GET",
+      cache: "no-store",
+    });
+    if (!keyRes.ok) {
+      setMessage("Não foi possível iniciar notificações.");
+      return false;
+    }
+    const keyData = (await keyRes.json()) as { publicKey?: string };
+    if (!keyData.publicKey) {
+      setMessage("Chave de notificação não configurada no servidor.");
+      return false;
+    }
+
+    const registration = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+    const subscription =
+      (await registration.pushManager.getSubscription()) ??
+      (await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: base64UrlToUint8Array(keyData.publicKey),
+      }));
+
+    const saveRes = await fetch("/api/vendedor/push-subscriptions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(subscription),
+    });
+    if (!saveRes.ok) {
+      setMessage("Falha ao guardar inscrição de notificação.");
+      return false;
+    }
+    return true;
+  }
+
   useEffect(() => {
     setMounted(true);
     if (typeof Notification === "undefined") {
       setPermission("unsupported");
       return;
     }
-    setPermission(Notification.permission);
+    const current = Notification.permission;
+    setPermission(current);
+    if (current === "granted") {
+      void ensurePushSubscription();
+    }
   }, []);
 
   if (!mounted || dismissed) return null;
@@ -86,41 +130,10 @@ export function VendedorNotificacoesOptIn() {
                   return;
                 }
 
-                const keyRes = await fetch("/api/vendedor/push-subscriptions", {
-                  method: "GET",
-                  cache: "no-store",
-                });
-                if (!keyRes.ok) {
-                  setMessage("Não foi possível iniciar notificações.");
-                  return;
+                const ok = await ensurePushSubscription();
+                if (ok) {
+                  setMessage("Avisos ativados. Você receberá alerta mesmo com app fechado.");
                 }
-                const keyData = (await keyRes.json()) as { publicKey?: string };
-                if (!keyData.publicKey) {
-                  setMessage("Chave de notificação não configurada no servidor.");
-                  return;
-                }
-
-                const registration = await navigator.serviceWorker.register("/sw.js", {
-                  scope: "/",
-                });
-                const subscription =
-                  (await registration.pushManager.getSubscription()) ??
-                  (await registration.pushManager.subscribe({
-                    userVisibleOnly: true,
-                    applicationServerKey: base64UrlToUint8Array(keyData.publicKey),
-                  }));
-
-                const saveRes = await fetch("/api/vendedor/push-subscriptions", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify(subscription),
-                });
-                if (!saveRes.ok) {
-                  setMessage("Falha ao guardar inscrição de notificação.");
-                  return;
-                }
-
-                setMessage("Avisos ativados. Você receberá alerta mesmo com app fechado.");
               } finally {
                 setBusy(false);
               }
