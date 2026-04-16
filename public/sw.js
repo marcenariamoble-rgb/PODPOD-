@@ -1,5 +1,5 @@
-/* PodPod — Service Worker (v4: vendedor start_url + cache bust) */
-const CACHE = "podpod-pwa-v4";
+/* PodPod — Service Worker (v5: push notifications vendedor) */
+const CACHE = "podpod-pwa-v5";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -78,4 +78,43 @@ self.addEventListener("fetch", (event) => {
       )
     );
   }
+});
+
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = {};
+  }
+
+  const title = data.title || "PodPod";
+  const options = {
+    body: data.body || "Você tem uma nova atualização.",
+    icon: "/icon-192.png",
+    badge: "/icon-192.png",
+    tag: data.tag || "podpod-notification",
+    data: {
+      url: data.url || "/vendedor/pedidos-cardapio",
+    },
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = event.notification?.data?.url || "/vendedor/pedidos-cardapio";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      const absolute = new URL(target, self.location.origin).toString();
+      for (const client of clients) {
+        if (client.url === absolute && "focus" in client) {
+          return client.focus();
+        }
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(absolute);
+      return undefined;
+    })
+  );
 });

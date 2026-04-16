@@ -5,6 +5,15 @@ import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+function base64UrlToUint8Array(base64Url: string) {
+  const padding = "=".repeat((4 - (base64Url.length % 4)) % 4);
+  const base64 = (base64Url + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(base64);
+  const out = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i += 1) out[i] = raw.charCodeAt(i);
+  return out;
+}
+
 /**
  * Convida o vendedor a permitir notificações do browser (avisos fora do site / ecrã bloqueado).
  * Só avalia `Notification` após montar no cliente para evitar mismatch de hidratação.
@@ -13,13 +22,22 @@ export function VendedorNotificacoesOptIn() {
   const [mounted, setMounted] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [permission, setPermission] = useState<NotificationPermission | "unsupported">(
+    "default"
+  );
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     setMounted(true);
+    if (typeof Notification === "undefined") {
+      setPermission("unsupported");
+      return;
+    }
+    setPermission(Notification.permission);
   }, []);
 
   if (!mounted || dismissed) return null;
-  if (typeof Notification === "undefined" || Notification.permission !== "default") {
+  if (permission === "unsupported" || permission === "granted") {
     return null;
   }
 
@@ -56,10 +74,55 @@ export function VendedorNotificacoesOptIn() {
             onClick={async () => {
               setBusy(true);
               try {
-                await Notification.requestPermission();
+                if (typeof Notification === "undefined" || !("serviceWorker" in navigator)) {
+                  setMessage("Este dispositivo não suporta notificações push.");
+                  return;
+                }
+
+                const nextPermission = await Notification.requestPermission();
+                setPermission(nextPermission);
+                if (nextPermission !== "granted") {
+                  setMessage("Permissão não concedida.");
+                  return;
+                }
+
+                const keyRes = await fetch("/api/vendedor/push-subscriptions", {
+                  method: "GET",
+                  cache: "no-store",
+                });
+                if (!keyRes.ok) {
+                  setMessage("Não foi possível iniciar notificações.");
+                  return;
+                }
+                const keyData = (await keyRes.json()) as { publicKey?: string };
+                if (!keyData.publicKey) {
+                  setMessage("Chave de notificação não configurada no servidor.");
+                  return;
+                }
+
+                const registration = await navigator.serviceWorker.register("/sw.js", {
+                  scope: "/",
+                });
+                const subscription =
+                  (await registration.pushManager.getSubscription()) ??
+                  (await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: base64UrlToUint8Array(keyData.publicKey),
+                  }));
+
+                const saveRes = await fetch("/api/vendedor/push-subscriptions", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(subscription),
+                });
+                if (!saveRes.ok) {
+                  setMessage("Falha ao guardar inscrição de notificação.");
+                  return;
+                }
+
+                setMessage("Avisos ativados. Você receberá alerta mesmo com app fechado.");
               } finally {
                 setBusy(false);
-                setDismissed(true);
               }
             }}
           >
@@ -67,6 +130,9 @@ export function VendedorNotificacoesOptIn() {
           </Button>
         </div>
       </div>
+      {message ? (
+        <p className="mt-2 text-xs font-medium text-muted-foreground">{message}</p>
+      ) : null}
     </div>
   );
 }

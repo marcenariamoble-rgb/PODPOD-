@@ -20,6 +20,22 @@ Veja `.env.example`. Em produção, `AUTH_SECRET` é obrigatório (o arranque fa
 
 Opcional: `NEXT_PUBLIC_SENTRY_DSN` / `SENTRY_DSN` para erros no Sentry.
 
+### Push notifications (pedido do cardápio com app fechado)
+
+Para avisar vendedor mesmo com PWA em background/fechado:
+
+1. Gerar chaves VAPID: `npx web-push generate-vapid-keys`
+2. Definir no `.env`:
+   - `NEXT_PUBLIC_VAPID_PUBLIC_KEY`
+   - `VAPID_PUBLIC_KEY`
+   - `VAPID_PRIVATE_KEY`
+   - `VAPID_SUBJECT` (ex.: `mailto:admin@podpod.local`)
+3. No portal do vendedor, tocar em **Permitir avisos**.
+
+Notas:
+- Em iPhone, requer PWA instalado na tela inicial e iOS recente.
+- Em produção, use HTTPS.
+
 ## Base de dados e migrações
 
 - **Desenvolvimento:** `npm run db:migrate` (ou `db:push` se preferir push sem histórico).

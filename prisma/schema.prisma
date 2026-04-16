@@ -161,6 +161,23 @@ model Seller {
   user          User?
   cardapioAlerta       CardapioAlertaVendedor?
   notificacoesCardapio NotificacaoSolicitacaoCardapio[]
+  pushSubscriptions    PushSubscription[]
+}
+
+/// Inscrição Web Push do vendedor (PWA/dispositivo/navegador).
+model PushSubscription {
+  id        String   @id @default(cuid())
+  sellerId  String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  seller Seller @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+
+  @@index([sellerId])
 }
 
 /// Estoque em posse do vendedor por produto (atualizado pelos serviços)

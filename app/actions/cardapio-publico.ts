@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { Role } from "@prisma/client";
 import { resolveCodigoIndicacaoPedido } from "@/lib/utils/codigo-indicacao";
+import { sendWebPushToMany } from "@/lib/services/web-push.service";
 
 async function notificarVendedoresPedidoCardapio(
   solicitacaoCardapioId: string,
@@ -59,6 +60,54 @@ async function notificarVendedoresPedidoCardapio(
     })),
     skipDuplicates: true,
   });
+}
+
+async function enviarPushPedidoCardapio(params: {
+  solicitacaoCardapioId: string;
+  productId: string;
+  quantidade: number;
+}) {
+  const solicitacao = await prisma.solicitacaoCardapio.findUnique({
+    where: { id: params.solicitacaoCardapioId },
+    select: {
+      nomeContato: true,
+      notificacoesVendedor: {
+        select: {
+          seller: {
+            select: {
+              pushSubscriptions: {
+                select: { endpoint: true, p256dh: true, auth: true },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+  if (!solicitacao) return;
+
+  const produto = await prisma.product.findUnique({
+    where: { id: params.productId },
+    select: { nome: true },
+  });
+
+  const allSubs = solicitacao.notificacoesVendedor.flatMap((n) => n.seller.pushSubscriptions);
+  if (allSubs.length === 0) return;
+
+  const { expiredEndpoints } = await sendWebPushToMany(allSubs, {
+    title: "PodPod — novo pedido no cardápio",
+    body: `${produto?.nome ?? "Produto"} · ${params.quantidade} un.${
+      solicitacao.nomeContato ? ` · ${solicitacao.nomeContato}` : ""
+    }`,
+    url: "/vendedor/pedidos-cardapio",
+    tag: "podpod-cardapio-pedido",
+  });
+
+  if (expiredEndpoints.length > 0) {
+    await prisma.pushSubscription.deleteMany({
+      where: { endpoint: { in: expiredEndpoints } },
+    });
+  }
 }
 
 export type PedirCardapioResult =
@@ -137,6 +186,11 @@ export async function actionPedirCardapio(
   });
 
   await notificarVendedoresPedidoCardapio(criada.id, codigoIndicacao);
+  await enviarPushPedidoCardapio({
+    solicitacaoCardapioId: criada.id,
+    productId,
+    quantidade,
+  });
 
   revalidatePath("/pedidos-cardapio");
   revalidatePath("/pedidos-cardapio/alertas");
