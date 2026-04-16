@@ -73,7 +73,7 @@ export default async function ComodatoEstoquePage({
   ]);
 
   const totalUnidadesGeral = totais._sum.quantidade ?? 0;
-  const totalUnidadesVisivel = linhas.reduce((a, r) => a + r.quantidade, 0);
+  const totalUnidadesVisivel = linhas.reduce((a: number, r) => a + r.quantidade, 0);
   const valorComodatoCustoVisivel = linhas.reduce(
     (a, r) => a + r.quantidade * Number(r.product.custoUnitario),
     0

@@ -7,7 +7,7 @@ Aplicação Next.js para gestão de estoque, comodato e vendas (área administra
 ```bash
 npm install
 cp .env.example .env
-# Edite DATABASE_URL, DIRECT_URL e AUTH_SECRET, depois:
+# Edite DATABASE_URL, DIRECT_URL (opcional) e AUTH_SECRET, depois:
 npm run setup
 npm run dev
 ```
@@ -26,7 +26,7 @@ Opcional: `NEXT_PUBLIC_SENTRY_DSN` / `SENTRY_DSN` para erros no Sentry.
 - **Produção / CI:** `npm run db:deploy` (`prisma migrate deploy`).
 - **Seed:** `npm run db:seed`.
 
-O `schema.prisma` usa `DATABASE_URL` (pooler) e `DIRECT_URL` (ligação direta) — o Prisma precisa da direta para locks em migrações em hosts como Neon.
+No Prisma 7, a URL de migração fica em `prisma.config.ts`: usa `DIRECT_URL` quando definida e fallback para `DATABASE_URL`.
 
 ## Backup (PostgreSQL)
 

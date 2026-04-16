@@ -1,7 +1,8 @@
-import type { Decimal } from "@prisma/client/runtime/library";
+type DecimalLike = { toNumber?: () => number; toString: () => string };
 
-export function toNumber(value: Decimal | number | null | undefined): number {
+export function toNumber(value: DecimalLike | number | null | undefined): number {
   if (value == null) return 0;
   if (typeof value === "number") return value;
-  return Number(value);
+  if (typeof value.toNumber === "function") return value.toNumber();
+  return Number(value.toString());
 }

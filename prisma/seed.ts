@@ -1,8 +1,18 @@
 import "dotenv/config";
+import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 import { PrismaClient } from "@prisma/client";
+import { Pool } from "pg";
 
-const prisma = new PrismaClient();
+const connectionString =
+  process.env.DIRECT_URL?.trim() || process.env.DATABASE_URL?.trim();
+
+if (!connectionString) {
+  throw new Error("Defina DIRECT_URL ou DATABASE_URL para executar o seed.");
+}
+
+const adapter = new PrismaPg(new Pool({ connectionString }));
+const prisma = new PrismaClient({ adapter });
 
 /** Senhas padrão só para desenvolvimento — defina no .env em produção. */
 const P = {
