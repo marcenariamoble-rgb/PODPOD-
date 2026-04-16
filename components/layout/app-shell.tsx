@@ -237,7 +237,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col pb-[4.25rem] md:pb-0">
-        <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-border/60 bg-background/80 px-4 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70 md:hidden">
+        <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-border/60 bg-background/80 px-4 pt-[env(safe-area-inset-top)] backdrop-blur-xl supports-[backdrop-filter]:bg-background/70 md:hidden">
           <Link href="/dashboard" className="flex items-center gap-2.5">
             <PodPodMark variant="nav" className="h-9 w-9" />
             <span className="font-heading text-base font-bold tracking-tight">

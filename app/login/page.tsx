@@ -29,7 +29,7 @@ export default async function LoginPage({
   }
 
   return (
-    <div className="login-canvas relative flex min-h-dvh flex-col items-center justify-center overflow-hidden px-4 py-10">
+    <div className="login-canvas relative flex min-h-dvh flex-col items-center justify-center overflow-hidden px-4 pb-10 pt-[max(2.5rem,calc(env(safe-area-inset-top)+1rem))]">
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.35]"
         aria-hidden

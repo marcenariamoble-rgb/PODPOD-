@@ -97,7 +97,7 @@ export function VendedorShell({
           </div>
         </div>
       ) : null}
-      <header className="sticky top-0 z-20 border-b border-border/70 bg-card/95 px-3 py-2.5 shadow-sm backdrop-blur-lg sm:px-4 sm:py-3">
+      <header className="sticky top-0 z-20 border-b border-border/70 bg-card/95 px-3 pb-2.5 pt-[max(env(safe-area-inset-top),0.625rem)] shadow-sm backdrop-blur-lg sm:px-4 sm:pb-3 sm:pt-[max(env(safe-area-inset-top),0.75rem)]">
         <div className="mx-auto flex max-w-lg flex-wrap items-center justify-between gap-x-2 gap-y-2">
           <div className="flex min-w-0 max-w-[min(100%,14rem)] items-center gap-2 sm:max-w-none sm:gap-3">
             <PodPodMark variant="nav" className="h-9 w-9 shrink-0 sm:h-10 sm:w-10" />
