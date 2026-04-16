@@ -18,20 +18,17 @@ function isIosSafari() {
 }
 
 export function VendedorInstallPrompt() {
-  const [mounted, setMounted] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null);
-  const [installed, setInstalled] = useState(false);
-
-  useEffect(() => setMounted(true), []);
+  const [installed, setInstalled] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return (
+      window.matchMedia?.("(display-mode: standalone)")?.matches ||
+      (window.navigator as Navigator & { standalone?: boolean }).standalone === true
+    );
+  });
 
   useEffect(() => {
-    if (!mounted) return;
-    const standalone =
-      window.matchMedia?.("(display-mode: standalone)")?.matches ||
-      (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
-    if (standalone) setInstalled(true);
-
     const onBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setInstallEvent(e as BeforeInstallPromptEvent);
@@ -47,14 +44,14 @@ export function VendedorInstallPrompt() {
       window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
       window.removeEventListener("appinstalled", onInstalled);
     };
-  }, [mounted]);
+  }, []);
 
   const showIosHelp = useMemo(
-    () => mounted && !installed && !dismissed && !installEvent && isIosSafari(),
-    [dismissed, installEvent, installed, mounted]
+    () => !installed && !dismissed && !installEvent && isIosSafari(),
+    [dismissed, installEvent, installed]
   );
 
-  if (!mounted || dismissed || installed) return null;
+  if (dismissed || installed) return null;
 
   if (installEvent) {
     return (

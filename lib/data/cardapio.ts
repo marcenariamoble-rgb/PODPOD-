@@ -20,7 +20,13 @@ export type CardapioProduto = {
 
 export async function listProdutosCardapio(): Promise<CardapioProduto[]> {
   const rows = await prisma.product.findMany({
-    where: { ativo: true },
+    where: {
+      ativo: true,
+      OR: [
+        { estoqueCentral: { gt: 0 } },
+        { sellerStocks: { some: { quantidade: { gt: 0 } } } },
+      ],
+    },
     orderBy: [{ categoria: "asc" }, { nome: "asc" }],
     select: {
       id: true,
@@ -38,9 +44,11 @@ export async function listProdutosCardapio(): Promise<CardapioProduto[]> {
       },
     },
   });
-  return rows.map((p) => ({
-    estoqueDisponivelCardapio:
-      p.estoqueCentral + p.sellerStocks.reduce((acc, s) => acc + s.quantidade, 0),
+  return rows.map((p) => {
+    const estoqueDisponivelCardapio =
+      p.estoqueCentral + p.sellerStocks.reduce((acc, s) => acc + s.quantidade, 0);
+    return {
+      estoqueDisponivelCardapio,
     id: p.id,
     nome: p.nome,
     marca: p.marca,
@@ -50,7 +58,7 @@ export async function listProdutosCardapio(): Promise<CardapioProduto[]> {
     precoVendaSugerido: Number(p.precoVendaSugerido),
     fotoUrl: p.fotoUrl,
     estoqueCentral: p.estoqueCentral,
-    disponivel:
-      p.estoqueCentral + p.sellerStocks.reduce((acc, s) => acc + s.quantidade, 0) > 0,
-  }));
+    disponivel: estoqueDisponivelCardapio > 0,
+  };
+  });
 }

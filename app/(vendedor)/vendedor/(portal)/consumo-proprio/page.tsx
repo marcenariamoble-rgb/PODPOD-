@@ -31,6 +31,33 @@ export default async function VendedorConsumoProprioPage({
   const { error, ok } = await searchParams;
   const session = await auth();
   const sellerId = session!.user.sellerId!;
+  const seller = await prisma.seller.findUnique({
+    where: { id: sellerId },
+    select: { consumoProprioHabilitado: true },
+  });
+  if (!seller?.consumoProprioHabilitado) {
+    return (
+      <div className="space-y-5">
+        <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-[var(--shadow-card)]">
+          <h1 className="font-heading text-xl font-bold tracking-tight text-foreground">
+            Consumo próprio indisponível
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            O acesso a esta área foi desativado para o seu utilizador. Fale com a administração
+            para habilitar.
+          </p>
+          <div className="mt-3">
+            <Link
+              href="/vendedor"
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }), "rounded-xl")}
+            >
+              Voltar ao painel
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const [rows, historico] = await Promise.all([
     listProdutosEmPosse(sellerId),

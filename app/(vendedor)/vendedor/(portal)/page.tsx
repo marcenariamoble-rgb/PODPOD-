@@ -146,15 +146,17 @@ export default async function VendedorHomePage() {
         >
           Pedidos do cardápio
         </Link>
-        <Link
-          href="/vendedor/consumo-proprio"
-          className={cn(
-            buttonVariants({ variant: "outline", size: "lg" }),
-            "h-12 w-full justify-center rounded-2xl border-border/80 text-base font-semibold"
-          )}
-        >
-          Consumo próprio
-        </Link>
+        {seller?.consumoProprioHabilitado ? (
+          <Link
+            href="/vendedor/consumo-proprio"
+            className={cn(
+              buttonVariants({ variant: "outline", size: "lg" }),
+              "h-12 w-full justify-center rounded-2xl border-border/80 text-base font-semibold"
+            )}
+          >
+            Consumo próprio
+          </Link>
+        ) : null}
       </div>
 
       {stocks.length === 0 ? (

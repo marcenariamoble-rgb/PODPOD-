@@ -48,10 +48,12 @@ function navItemActive(pathname: string, href: string, end?: boolean) {
 export function VendedorShell({
   children,
   notificacoesCardapioNaoLidas = 0,
+  consumoProprioHabilitado = true,
 }: {
   children: React.ReactNode;
   /** Pedidos do cardápio ainda não lidos (área /vendedor/pedidos-cardapio). */
   notificacoesCardapioNaoLidas?: number;
+  consumoProprioHabilitado?: boolean;
 }) {
   const pathname = usePathname();
   const [pedidosNaoLidos, setPedidosNaoLidos] = useState(notificacoesCardapioNaoLidas);
@@ -161,6 +163,9 @@ export function VendedorShell({
       <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-border/70 bg-card/95 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_28px_oklch(0.25_0.04_285_/_0.08)] backdrop-blur-xl">
         <div className="mx-auto flex max-w-lg justify-around gap-0.5 px-0.5">
           {nav.map((item) => {
+            if (!consumoProprioHabilitado && item.href === "/vendedor/consumo-proprio") {
+              return null;
+            }
             const Icon = item.icon;
             const active = navItemActive(
               pathname,
@@ -173,6 +178,7 @@ export function VendedorShell({
               <Link
                 key={item.href}
                 href={item.href}
+                aria-current={active ? "page" : undefined}
                 className={cn(
                   "flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl py-1.5 text-[9px] font-semibold leading-[1.15] transition-colors sm:gap-1 sm:py-2 sm:text-[10px] sm:leading-tight",
                   active ? "text-primary" : "text-muted-foreground"

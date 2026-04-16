@@ -2,18 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { requireStaffUserId } from "@/lib/server-auth";
 import { prisma } from "@/lib/db";
 import { uploadProductPhotoFromForm } from "@/lib/upload-product-image";
 import { parseCodigoVendaParaGuardar } from "@/lib/utils/codigo-indicacao";
 import { ComissaoVendedorTipo, Prisma, Role } from "@prisma/client";
-
-async function requireUserId() {
-  const session = await auth();
-  const id = session?.user?.id;
-  if (!id) redirect("/login");
-  return id;
-}
 
 function parseMoney(raw: string | null | undefined): Prisma.Decimal | null {
   if (raw == null || String(raw).trim() === "") return null;
@@ -116,7 +109,7 @@ function skuFromNome(nome: string) {
 }
 
 export async function actionCreateProduct(formData: FormData) {
-  await requireUserId();
+  await requireStaffUserId();
   const nome = String(formData.get("nome") ?? "").trim();
   const marca = String(formData.get("marca") ?? "").trim();
   const sabor = String(formData.get("sabor") ?? "").trim();
@@ -176,7 +169,7 @@ export async function actionCreateProduct(formData: FormData) {
 }
 
 export async function actionUpdateProduct(formData: FormData) {
-  await requireUserId();
+  await requireStaffUserId();
   const id = String(formData.get("id") ?? "");
   if (!id) redirect("/produtos?error=" + encodeURIComponent("Produto inválido."));
 
@@ -241,7 +234,7 @@ export async function actionUpdateProduct(formData: FormData) {
 }
 
 export async function actionToggleProductAtivo(formData: FormData) {
-  await requireUserId();
+  await requireStaffUserId();
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   const p = await prisma.product.findUnique({ where: { id } });
@@ -258,7 +251,7 @@ export async function actionToggleProductAtivo(formData: FormData) {
 
 /** Remove o produto e todo o histórico associado (vendas, movimentações, linhas de estoque em vendedores). */
 export async function actionDeleteProduct(formData: FormData) {
-  await requireUserId();
+  await requireStaffUserId();
   const id = String(formData.get("id") ?? "").trim();
   if (!id) {
     redirect("/produtos?error=" + encodeURIComponent("Produto inválido."));
@@ -295,7 +288,7 @@ export async function actionDeleteProduct(formData: FormData) {
 }
 
 export async function actionCreateSeller(formData: FormData) {
-  await requireUserId();
+  await requireStaffUserId();
   const nome = String(formData.get("nome") ?? "").trim();
   if (!nome) {
     redirect("/vendedores/novo?error=" + encodeURIComponent("Informe o nome."));
@@ -315,6 +308,8 @@ export async function actionCreateSeller(formData: FormData) {
   }
 
   const ativo = String(formData.get("ativo") ?? "true") === "true";
+  const consumoProprioHabilitado =
+    String(formData.get("consumoProprioHabilitado") ?? "true") === "true";
 
   const comissao = parseSellerComissaoFromForm(formData);
   if (!comissao.ok) {
@@ -352,6 +347,7 @@ export async function actionCreateSeller(formData: FormData) {
       limiteComodato,
       observacoes,
       ativo,
+      consumoProprioHabilitado,
       comissaoDescontaNaVenda: comissao.comissaoDescontaNaVenda,
       comissaoTipo: comissao.comissaoTipo,
       comissaoPercentual: comissao.comissaoPercentual,
@@ -364,7 +360,7 @@ export async function actionCreateSeller(formData: FormData) {
 }
 
 export async function actionUpdateSeller(formData: FormData) {
-  await requireUserId();
+  await requireStaffUserId();
   const id = String(formData.get("id") ?? "");
   if (!id) redirect("/vendedores");
 
@@ -390,6 +386,8 @@ export async function actionUpdateSeller(formData: FormData) {
   }
 
   const ativo = String(formData.get("ativo") ?? "true") === "true";
+  const consumoProprioHabilitado =
+    String(formData.get("consumoProprioHabilitado") ?? "true") === "true";
 
   const comissao = parseSellerComissaoFromForm(formData);
   if (!comissao.ok) {
@@ -426,6 +424,7 @@ export async function actionUpdateSeller(formData: FormData) {
       limiteComodato,
       observacoes,
       ativo,
+      consumoProprioHabilitado,
       comissaoDescontaNaVenda: comissao.comissaoDescontaNaVenda,
       comissaoTipo: comissao.comissaoTipo,
       comissaoPercentual: comissao.comissaoPercentual,
@@ -439,7 +438,7 @@ export async function actionUpdateSeller(formData: FormData) {
 }
 
 export async function actionToggleSellerAtivo(formData: FormData) {
-  await requireUserId();
+  await requireStaffUserId();
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   const s = await prisma.seller.findUnique({ where: { id } });
@@ -455,7 +454,7 @@ export async function actionToggleSellerAtivo(formData: FormData) {
 
 /** Remove o vendedor e dados ligados (vendas, recebimentos, movimentações, estoque em posse). Desvincula o utilizador da app (passa a OPERADOR). */
 export async function actionDeleteSeller(formData: FormData) {
-  await requireUserId();
+  await requireStaffUserId();
   const id = String(formData.get("id") ?? "").trim();
   if (!id) {
     redirect("/vendedores?error=" + encodeURIComponent("Vendedor inválido."));

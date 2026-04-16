@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 import {
   registrarConsumoProprioVendedor,
   registrarDevolucao,
@@ -128,6 +129,19 @@ export async function actionConsumoProprioPortal(formData: FormData) {
     String(formData.get("redirectAfter") ?? "/vendedor/consumo-proprio").trim() ||
     "/vendedor/consumo-proprio";
   const { userId, sellerId } = await assertVendedorSession();
+  const seller = await prisma.seller.findUnique({
+    where: { id: sellerId },
+    select: { consumoProprioHabilitado: true },
+  });
+  if (!seller?.consumoProprioHabilitado) {
+    redirect(
+      withParam(
+        redirectAfter,
+        "error",
+        "Consumo próprio desativado para este vendedor. Fale com a administração."
+      )
+    );
+  }
   try {
     await registrarConsumoProprioVendedor({
       vendedorId: sellerId,

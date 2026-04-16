@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PodPod
 
-## Getting Started
+Aplicação Next.js para gestão de estoque, comodato e vendas (área administrativa e portal do vendedor).
 
-First, run the development server:
+## Desenvolvimento
 
 ```bash
+npm install
+cp .env.example .env
+# Edite DATABASE_URL, DIRECT_URL e AUTH_SECRET, depois:
+npm run setup
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abra [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Variáveis de ambiente
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Veja `.env.example`. Em produção, `AUTH_SECRET` é obrigatório (o arranque falha sem ele — ver `instrumentation.ts`).
 
-## Learn More
+Opcional: `NEXT_PUBLIC_SENTRY_DSN` / `SENTRY_DSN` para erros no Sentry.
 
-To learn more about Next.js, take a look at the following resources:
+## Base de dados e migrações
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Desenvolvimento:** `npm run db:migrate` (ou `db:push` se preferir push sem histórico).
+- **Produção / CI:** `npm run db:deploy` (`prisma migrate deploy`).
+- **Seed:** `npm run db:seed`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+O `schema.prisma` usa `DATABASE_URL` (pooler) e `DIRECT_URL` (ligação direta) — o Prisma precisa da direta para locks em migrações em hosts como Neon.
 
-## Deploy on Vercel
+## Backup (PostgreSQL)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Antes de migrações destrutivas ou deploys grandes, faça dump da base (exemplo genérico):
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+pg_dump "$DATABASE_URL" -Fc -f backup.dump
+```
+
+Restauro: `pg_restore` conforme o vosso hosting.
+
+## Smoke test HTTP
+
+Com o servidor a correr (`npm run dev` ou `npm run start`):
+
+```bash
+npm run smoke
+# ou
+node scripts/smoke.mjs http://127.0.0.1:3000
+```
+
+## Deploy (Vercel)
+
+1. Ligar repositório e definir variáveis (mesmas chaves que `.env.example`).
+2. Build: `npm run build` (já inclui `prisma generate` no `postinstall`).
+3. Após o primeiro deploy ou novas migrações: executar `prisma migrate deploy` no ambiente de produção (hook de deploy ou comando manual).
+
+## Documentação Next.js
+
+- [Next.js — Deploy](https://nextjs.org/docs/app/building-your-application/deploying)

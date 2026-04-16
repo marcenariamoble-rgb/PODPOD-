@@ -147,6 +147,20 @@ export default async function NovoVendedorPage({
                 <option value="false">Inativo</option>
               </select>
             </Field>
+            <Field
+              label="Consumo próprio no portal"
+              htmlFor="consumoProprioHabilitado"
+            >
+              <select
+                id="consumoProprioHabilitado"
+                name="consumoProprioHabilitado"
+                className={nativeSelectClassName}
+                defaultValue="true"
+              >
+                <option value="true">Permitido</option>
+                <option value="false">Bloqueado</option>
+              </select>
+            </Field>
             <Button type="submit" className="h-11 w-full rounded-xl font-semibold">
               Salvar vendedor
             </Button>

@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { VendedorShell } from "@/components/vendedor/vendedor-shell";
 import { countNotificacoesCardapioNaoLidas } from "@/lib/data/cardapio-notificacoes";
+import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -26,12 +27,21 @@ export default async function VendedorPortalLayout({
   if (session.user.role !== "VENDEDOR") redirect("/dashboard");
 
   const sellerId = session.user.sellerId;
-  const notificacoesCardapioNaoLidas = sellerId
-    ? await countNotificacoesCardapioNaoLidas(sellerId)
-    : 0;
+  const [notificacoesCardapioNaoLidas, sellerConfig] = await Promise.all([
+    sellerId ? countNotificacoesCardapioNaoLidas(sellerId) : Promise.resolve(0),
+    sellerId
+      ? prisma.seller.findUnique({
+          where: { id: sellerId },
+          select: { consumoProprioHabilitado: true },
+        })
+      : Promise.resolve(null),
+  ]);
 
   return (
-    <VendedorShell notificacoesCardapioNaoLidas={notificacoesCardapioNaoLidas}>
+    <VendedorShell
+      notificacoesCardapioNaoLidas={notificacoesCardapioNaoLidas}
+      consumoProprioHabilitado={sellerConfig?.consumoProprioHabilitado ?? true}
+    >
       {children}
     </VendedorShell>
   );

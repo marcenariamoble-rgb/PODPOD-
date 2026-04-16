@@ -3,8 +3,8 @@ import { auth } from "@/lib/auth.edge";
 import { isAdminRoute, isVendedorArea } from "@/lib/routes";
 
 /**
- * Usa `auth` de `auth.edge` (sem Prisma) — compatível com Edge.
- * Importar `auth` de `lib/auth.ts` puxa Prisma e pode anular a sessão no middleware.
+ * Usa `auth` de `auth.edge` (sem Prisma) — compatível com Proxy/Edge.
+ * Importar `auth` de `lib/auth.ts` puxa Prisma e pode anular a sessão.
  */
 export default auth((req) => {
   const path = req.nextUrl.pathname;

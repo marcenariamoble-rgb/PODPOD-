@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { requireStaffUserId } from "@/lib/server-auth";
 import {
   ajusteEstoque,
   entregarComodatoLote,
@@ -15,13 +15,6 @@ import {
   registrarVendaLote,
   estornarVenda,
 } from "@/lib/services/estoque.service";
-
-async function getUserId() {
-  const session = await auth();
-  const id = session?.user?.id;
-  if (!id) throw new Error("Não autenticado.");
-  return id;
-}
 
 function withParam(path: string, key: string, value: string) {
   const sep = path.includes("?") ? "&" : "?";
@@ -68,7 +61,7 @@ export async function actionEntradaManual(formData: FormData) {
   }
 
   try {
-    const userId = await getUserId();
+    const userId = await requireStaffUserId();
     await registrarEntradaManualLote({
       itens: itens.map((item, i) => ({
         productId: item.productId,
@@ -114,7 +107,7 @@ export async function actionSaidaManual(formData: FormData) {
         valorUnitario != null && !Number.isNaN(valorUnitario) && valorUnitario >= 0
           ? valorUnitario
           : null,
-      usuarioId: await getUserId(),
+      usuarioId: await requireStaffUserId(),
     });
   } catch (e) {
     const msg =
@@ -144,7 +137,7 @@ export async function actionAjusteEstoque(formData: FormData) {
     vendedorId,
     quantidadeDelta,
     justificativa,
-    usuarioId: await getUserId(),
+    usuarioId: await requireStaffUserId(),
   });
   revalidatePath("/produtos");
   revalidatePath(`/produtos/${productId}`);
@@ -176,7 +169,7 @@ export async function actionComodato(formData: FormData) {
       vendedorId: String(formData.get("vendedorId") ?? ""),
       itens,
       observacoes: String(formData.get("observacoes") ?? "") || undefined,
-      usuarioId: await getUserId(),
+      usuarioId: await requireStaffUserId(),
     });
   } catch (e) {
     const msg =
@@ -206,7 +199,7 @@ export async function actionConsumoProprioAdmin(formData: FormData) {
       productId,
       quantidade: parsePositiveInt(formData.get("quantidade")),
       observacoes: String(formData.get("observacoes") ?? "") || undefined,
-      usuarioId: await getUserId(),
+      usuarioId: await requireStaffUserId(),
     });
   } catch (e) {
     const msg =
@@ -233,7 +226,7 @@ export async function actionEstornarVenda(formData: FormData) {
   try {
     await estornarVenda({
       vendaId,
-      usuarioId: await getUserId(),
+      usuarioId: await requireStaffUserId(),
     });
   } catch (e) {
     const msg =
@@ -309,7 +302,7 @@ export async function actionVenda(formData: FormData) {
         formaPagamento,
         observacoes: observacoes ? `[Lote ${i + 1}] ${observacoes}` : undefined,
       })),
-      usuarioId: await getUserId(),
+      usuarioId: await requireStaffUserId(),
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Não foi possível registrar a venda em lote.";
@@ -331,7 +324,7 @@ export async function actionDevolucao(formData: FormData) {
     productId: String(formData.get("productId") ?? ""),
     quantidade: parsePositiveInt(formData.get("quantidade")),
     observacoes: String(formData.get("observacoes") ?? "") || undefined,
-    usuarioId: await getUserId(),
+    usuarioId: await requireStaffUserId(),
   });
   revalidatePath("/dashboard");
   revalidatePath("/produtos");
@@ -365,7 +358,7 @@ export async function actionPerda(formData: FormData) {
     vendedorId: v && String(v) !== "" ? String(v) : null,
     quantidade: parsePositiveInt(formData.get("quantidade")),
     observacoes: String(formData.get("observacoes") ?? "") || undefined,
-    usuarioId: await getUserId(),
+    usuarioId: await requireStaffUserId(),
   });
   revalidatePath("/dashboard");
   revalidatePath("/produtos");

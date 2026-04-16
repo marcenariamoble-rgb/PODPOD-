@@ -146,6 +146,8 @@ model Seller {
   regiao         String?
   limiteComodato Int?
   ativo          Boolean  @default(true)
+  /// Permite acesso ao menu "Consumo próprio" no portal do vendedor.
+  consumoProprioHabilitado Boolean @default(true)
   observacoes    String?
   /// Se true, o vendedor já desconta a comissão na venda e repassa só o saldo (valor líquido para a empresa).
   comissaoDescontaNaVenda Boolean              @default(false)
