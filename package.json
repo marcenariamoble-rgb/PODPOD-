@@ -4,6 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:local": "next dev -p 3000",
+    "start:local": "powershell -ExecutionPolicy Bypass -File ./scripts/start-local.ps1",
+    "stop:local": "powershell -ExecutionPolicy Bypass -File ./scripts/stop-local.ps1",
     "build": "next build",
     "build:with-prisma-generate": "prisma generate && next build",
     "start": "next start",
