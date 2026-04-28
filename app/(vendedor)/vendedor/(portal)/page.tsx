@@ -138,6 +138,15 @@ export default async function VendedorHomePage() {
           Ver meu estoque
         </Link>
         <Link
+          href="/vendedor/historico"
+          className={cn(
+            buttonVariants({ variant: "outline", size: "lg" }),
+            "h-12 w-full justify-center rounded-2xl border-border/80 text-base font-semibold"
+          )}
+        >
+          Ver histórico
+        </Link>
+        <Link
           href="/vendedor/pedidos-cardapio"
           className={cn(
             buttonVariants({ variant: "outline", size: "lg" }),

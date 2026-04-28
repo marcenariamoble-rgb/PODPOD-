@@ -36,6 +36,9 @@ export default async function VendedorVenderPage({
         )
       )
     : 1;
+  const valorUnitarioPorProduto = Object.fromEntries(
+    rows.map((r) => [r.product.id, Number(r.product.precoVendaSugerido).toFixed(2)])
+  );
 
   return (
     <div className="space-y-5">
@@ -78,6 +81,8 @@ export default async function VendedorVenderPage({
             initialRows={4}
             prefillProductId={prefillRow?.product.id}
             prefillQuantidade={prefillQuantidade}
+            valorUnitarioPorProduto={valorUnitarioPorProduto}
+            bloquearEdicaoValorUnitario
           />
           <Field label="Forma de pagamento" htmlFor="formaPagamento">
             <Input

@@ -44,47 +44,41 @@ export async function actionVendaPortal(formData: FormData) {
     .getAll("quantidade")
     .map((v) => Math.floor(Number(v)))
     .map((n) => (Number.isFinite(n) ? n : 0));
-  const valores = formData
-    .getAll("valorUnitario")
-    .map((v) => {
-      const raw = String(v ?? "").trim().replace(",", ".");
-      if (raw === "") return Number.NaN;
-      return Number(raw);
-    })
-    .map((n) => (Number.isFinite(n) ? n : NaN));
-
   const itens = produtos
     .map((productId, i) => ({
       productId,
       quantidade: quantidades[i] ?? 0,
-      valorUnitario: valores[i] ?? NaN,
     }))
     .filter((i) => i.productId && i.quantidade > 0);
-
-  if (itens.some((i) => !Number.isFinite(i.valorUnitario))) {
-    redirect(
-      withParam(
-        redirectAfter,
-        "error",
-        "Informe o valor unitário para todos os itens preenchidos."
-      )
-    );
-  }
-  if (itens.some((i) => i.valorUnitario < 0)) {
-    redirect(withParam(redirectAfter, "error", "Valor unitário não pode ser negativo."));
-  }
 
   if (itens.length === 0) {
     redirect(withParam(redirectAfter, "error", "Informe ao menos um item para venda."));
   }
 
   try {
+    const precosProdutos = await prisma.product.findMany({
+      where: { id: { in: itens.map((item) => item.productId) } },
+      select: { id: true, precoVendaSugerido: true },
+    });
+    const precoPorProduto = new Map(
+      precosProdutos.map((p) => [p.id, Number(p.precoVendaSugerido)])
+    );
+    if (itens.some((item) => !Number.isFinite(precoPorProduto.get(item.productId)))) {
+      redirect(
+        withParam(
+          redirectAfter,
+          "error",
+          "Não foi possível obter o preço sugerido de um dos produtos."
+        )
+      );
+    }
+
     await registrarVendaLote({
       vendedorId: sellerId,
       itens: itens.map((item, i) => ({
+        valorUnitario: precoPorProduto.get(item.productId) ?? Number.NaN,
         productId: item.productId,
         quantidade: item.quantidade,
-        valorUnitario: item.valorUnitario,
         formaPagamento,
         observacoes: observacoes ? `[Lote ${i + 1}] ${observacoes}` : undefined,
       })),

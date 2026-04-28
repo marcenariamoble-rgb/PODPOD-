@@ -14,6 +14,7 @@ import {
   BookOpen,
   Bell,
   KeyRound,
+  History,
 } from "lucide-react";
 import { PodPodMark } from "@/components/brand/podpod-mark";
 import { cn } from "@/lib/utils";
@@ -32,6 +33,7 @@ const nav = [
   },
   { href: "/vendedor/estoque", label: "Estoque", icon: Package },
   { href: "/vendedor/vender", label: "Vender", icon: ShoppingCart },
+  { href: "/vendedor/historico", label: "Histórico", icon: History },
   { href: "/vendedor/consumo-proprio", label: "Consumo", icon: Coffee },
   { href: "/vendedor/devolver", label: "Devolver", icon: Undo2 },
 ];

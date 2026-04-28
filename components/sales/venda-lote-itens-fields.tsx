@@ -32,6 +32,8 @@ export function VendaLoteItensFields({
   initialRows = 3,
   prefillProductId,
   prefillQuantidade,
+  valorUnitarioPorProduto,
+  bloquearEdicaoValorUnitario = false,
   sellerSelectId,
   estoqueComodatoPorVendedorProduto,
 }: {
@@ -39,6 +41,10 @@ export function VendaLoteItensFields({
   initialRows?: number;
   prefillProductId?: string;
   prefillQuantidade?: number;
+  /** Mapa productId -> valor unitário (string com ponto decimal). */
+  valorUnitarioPorProduto?: Record<string, string>;
+  /** Quando true, valor unitário segue o produto e não pode ser editado. */
+  bloquearEdicaoValorUnitario?: boolean;
   /** id do select de vendedor no mesmo form (ex.: "vendedorId"). */
   sellerSelectId?: string;
   /** Mapa sellerId -> productId -> qtd em comodato. */
@@ -82,6 +88,16 @@ export function VendaLoteItensFields({
     setRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
   }
 
+  useEffect(() => {
+    if (!bloquearEdicaoValorUnitario || !valorUnitarioPorProduto) return;
+    setRows((prev) =>
+      prev.map((row) => ({
+        ...row,
+        valorUnitario: row.productId ? (valorUnitarioPorProduto[row.productId] ?? "") : "",
+      }))
+    );
+  }, [bloquearEdicaoValorUnitario, valorUnitarioPorProduto]);
+
   return (
     <div className="rounded-xl border border-border/70 bg-muted/20 p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
@@ -101,7 +117,19 @@ export function VendaLoteItensFields({
               name="productId"
               className={nativeSelectClassName}
               value={row.productId}
-              onChange={(e) => updateRow(row.key, { productId: e.target.value })}
+              onChange={(e) => {
+                const productId = e.target.value;
+                updateRow(row.key, {
+                  productId,
+                  ...(bloquearEdicaoValorUnitario
+                    ? {
+                        valorUnitario: productId
+                          ? (valorUnitarioPorProduto?.[productId] ?? "")
+                          : "",
+                      }
+                    : {}),
+                });
+              }}
             >
               <option value="">Produto #{idx + 1}</option>
               {options.map((op) => (
@@ -131,6 +159,8 @@ export function VendaLoteItensFields({
               placeholder="Valor unit."
               value={row.valorUnitario}
               onChange={(e) => updateRow(row.key, { valorUnitario: e.target.value })}
+              readOnly={bloquearEdicaoValorUnitario}
+              aria-readonly={bloquearEdicaoValorUnitario}
             />
             <Button
               type="button"
