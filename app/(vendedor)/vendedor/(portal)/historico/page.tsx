@@ -25,6 +25,10 @@ import {
 
 const tipoOptions: Array<{ value: VendedorHistoricoTipoFiltro; label: string }> = [
   { value: "TODOS", label: "Todos" },
+  { value: "PAGAMENTO", label: "Pagamento" },
+  { value: "COMODATO", label: "Comodato" },
+  { value: "DEBITO_BRUTO", label: "Débito bruto" },
+  { value: "DEBITO_LIQUIDO", label: "Débito líquido" },
   { value: "VENDA", label: "Vendas" },
   { value: "RECEBIMENTO", label: "Pagamentos (repasses)" },
   { value: "ENTREGA_COMODATO", label: "Comodato recebido" },
@@ -37,6 +41,10 @@ const tipoOptions: Array<{ value: VendedorHistoricoTipoFiltro; label: string }> 
 function badgeLabel(tipo: VendedorHistoricoTipoFiltro) {
   const map: Record<VendedorHistoricoTipoFiltro, string> = {
     TODOS: "Todos",
+    PAGAMENTO: "Pagamento",
+    COMODATO: "Comodato",
+    DEBITO_BRUTO: "Débito bruto",
+    DEBITO_LIQUIDO: "Débito líquido",
     VENDA: "Venda",
     RECEBIMENTO: "Pagamento",
     ENTREGA_COMODATO: "Comodato",

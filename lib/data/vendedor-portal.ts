@@ -109,6 +109,10 @@ export type VendedorHistoricoTipoFiltro =
   | "TODOS"
   | "VENDA"
   | "RECEBIMENTO"
+  | "PAGAMENTO"
+  | "COMODATO"
+  | "DEBITO_BRUTO"
+  | "DEBITO_LIQUIDO"
   | "ENTREGA_COMODATO"
   | "DEVOLUCAO"
   | "ESTORNO_VENDA"
@@ -126,6 +130,7 @@ export type VendedorHistoricoItem = {
   produtoNome?: string;
   formaPagamento?: string;
   observacoes?: string | null;
+  valorDebitoLiquido?: number;
 };
 
 export type VendedorHistoricoResult = {
@@ -153,6 +158,10 @@ export async function listHistoricoVendedor(
   }
 ): Promise<VendedorHistoricoResult> {
   const tipo = filters?.tipo ?? "TODOS";
+  const isPagamento = tipo === "PAGAMENTO";
+  const isComodato = tipo === "COMODATO";
+  const isDebitoBruto = tipo === "DEBITO_BRUTO";
+  const isDebitoLiquido = tipo === "DEBITO_LIQUIDO";
   const page = Math.max(1, Math.floor(filters?.page ?? 1));
   const perPage = Math.min(100, Math.max(10, Math.floor(filters?.perPage ?? 25)));
   const fetchTake = Math.min(500, page * perPage + perPage);
@@ -169,7 +178,7 @@ export async function listHistoricoVendedor(
 
   const [vendas, recebimentos, movimentacoes, resumoVendas, resumoRecebimentos] =
     await Promise.all([
-    tipo === "TODOS" || tipo === "VENDA"
+    tipo === "TODOS" || tipo === "VENDA" || isDebitoBruto || isDebitoLiquido
       ? prisma.venda.findMany({
           where: {
             vendedorId: sellerId,
@@ -180,7 +189,7 @@ export async function listHistoricoVendedor(
           include: { produto: { select: { nome: true } } },
         })
       : Promise.resolve([]),
-    tipo === "TODOS" || tipo === "RECEBIMENTO"
+    tipo === "TODOS" || tipo === "RECEBIMENTO" || isPagamento
       ? prisma.recebimento.findMany({
           where: {
             vendedorId: sellerId,
@@ -190,6 +199,7 @@ export async function listHistoricoVendedor(
           take: fetchTake,
         })
       : Promise.resolve([]),
+    isComodato ||
     tipo === "TODOS" ||
     tipo === "ENTREGA_COMODATO" ||
     tipo === "DEVOLUCAO" ||
@@ -202,7 +212,9 @@ export async function listHistoricoVendedor(
             ...(hasDateFilter ? { createdAt: createdAtFilter } : {}),
             tipoMovimentacao: {
               in:
-                tipo === "TODOS"
+                isComodato
+                  ? ["ENTREGA_COMODATO", "DEVOLUCAO"]
+                  : tipo === "TODOS"
                   ? ["ENTREGA_COMODATO", "DEVOLUCAO", "ESTORNO_VENDA", "PERDA", "AJUSTE"]
                   : [tipo],
             },
@@ -230,7 +242,7 @@ export async function listHistoricoVendedor(
     }),
   ]);
 
-  const timeline = [
+  let timeline = [
     ...vendas.map((v) => ({
       id: `VENDA:${v.id}`,
       kind: "VENDA" as const,
@@ -238,6 +250,7 @@ export async function listHistoricoVendedor(
       titulo: "Venda registrada",
       descricao: `${v.produto.nome} · ${v.quantidade} unidade(s)`,
       valor: Number(v.valorTotal),
+      valorDebitoLiquido: Number(v.valorSaldoRepasse),
       quantidade: v.quantidade,
       produtoNome: v.produto.nome,
       formaPagamento: v.formaPagamento ?? undefined,
@@ -274,6 +287,23 @@ export async function listHistoricoVendedor(
       observacoes: m.observacoes,
     })),
   ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+  if (isDebitoBruto) {
+    timeline = timeline.filter((i) => i.kind === "VENDA");
+  } else if (isDebitoLiquido) {
+    timeline = timeline
+      .filter((i) => i.kind === "VENDA")
+      .map((i) => ({
+        ...i,
+        valor: i.valorDebitoLiquido ?? i.valor,
+      }));
+  } else if (isPagamento) {
+    timeline = timeline.filter((i) => i.kind === "RECEBIMENTO");
+  } else if (isComodato) {
+    timeline = timeline.filter(
+      (i) => i.kind === "ENTREGA_COMODATO" || i.kind === "DEVOLUCAO"
+    );
+  }
 
   const start = (page - 1) * perPage;
   const end = start + perPage;
