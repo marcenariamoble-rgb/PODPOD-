@@ -16,6 +16,7 @@ import {
 } from "@/app/actions/cadastros";
 import { DeleteSellerButton } from "@/components/vendedores/delete-seller-button";
 import { EstornarVendaButton } from "@/components/vendas/estornar-venda-button";
+import { EditarVendaValorButton } from "@/components/vendas/editar-venda-valor-button";
 import {
   Table,
   TableBody,
@@ -112,7 +113,11 @@ export default async function VendedorDetalhePage({
       <FormErrorBanner message={error ? decodeURIComponent(error) : null} />
       <FormSuccessBanner
         message={
-          ok === "estorno" ? "Venda estornada; o estoque foi atualizado." : null
+          ok === "estorno"
+            ? "Venda estornada; o estoque foi atualizado."
+            : ok === "venda_editada"
+              ? "Valor da venda atualizado com sucesso."
+              : null
         }
       />
 
@@ -435,12 +440,20 @@ export default async function VendedorDetalhePage({
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <EstornarVendaButton
-                      vendaId={v.id}
-                      summary={`${v.produto.nome} — ${v.quantidade} un. (${formatBRL(Number(v.valorTotal))})`}
-                      redirectAfter={`/vendedores/${id}`}
-                      quantidadeAlocadaCentral={v.quantidadeAlocadaCentral}
-                    />
+                    <div className="inline-flex gap-2">
+                      <EditarVendaValorButton
+                        vendaId={v.id}
+                        produtoNome={v.produto.nome}
+                        valorUnitarioAtual={Number(v.valorUnitario)}
+                        redirectAfter={`/vendedores/${id}`}
+                      />
+                      <EstornarVendaButton
+                        vendaId={v.id}
+                        summary={`${v.produto.nome} — ${v.quantidade} un. (${formatBRL(Number(v.valorTotal))})`}
+                        redirectAfter={`/vendedores/${id}`}
+                        quantidadeAlocadaCentral={v.quantidadeAlocadaCentral}
+                      />
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

@@ -13,6 +13,7 @@ import {
   registrarRecebimento,
   registrarSaidaManual,
   registrarVendaLote,
+  atualizarValorVenda,
   estornarVenda,
 } from "@/lib/services/estoque.service";
 
@@ -245,6 +246,38 @@ export async function actionEstornarVenda(formData: FormData) {
   revalidatePath("/financeiro");
   revalidatePath("/recebimentos/nova");
   redirect(withParam(redirectAfter, "ok", "estorno"));
+}
+
+export async function actionAtualizarVendaValor(formData: FormData) {
+  const redirectAfter =
+    String(formData.get("redirectAfter") ?? "/vendas").trim() || "/vendas";
+  const vendaId = String(formData.get("vendaId") ?? "").trim();
+  const rawValor = String(formData.get("valorUnitario") ?? "").trim().replace(",", ".");
+  const valorUnitario = Number(rawValor);
+  if (!vendaId) {
+    redirect(withParam(redirectAfter, "error", "Venda inválida para edição."));
+  }
+  if (!Number.isFinite(valorUnitario) || valorUnitario < 0) {
+    redirect(withParam(redirectAfter, "error", "Valor unitário inválido."));
+  }
+  try {
+    await atualizarValorVenda({
+      vendaId,
+      valorUnitario,
+      usuarioId: await requireStaffUserId(),
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Não foi possível atualizar a venda.";
+    redirect(withParam(redirectAfter, "error", msg));
+  }
+  revalidatePath("/dashboard");
+  revalidatePath("/vendas");
+  revalidatePath("/vendedores");
+  revalidatePath("/movimentacoes");
+  revalidatePath("/produtos");
+  revalidatePath("/financeiro");
+  revalidatePath(redirectAfter);
+  redirect(withParam(redirectAfter, "ok", "venda_editada"));
 }
 
 export async function actionVenda(formData: FormData) {

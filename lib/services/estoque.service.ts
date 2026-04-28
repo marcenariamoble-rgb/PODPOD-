@@ -932,3 +932,67 @@ export async function registrarRecebimento(input: {
 
   await recalcularStatusVendasVendedor(vendedorId);
 }
+
+export async function atualizarValorVenda(input: {
+  vendaId: string;
+  valorUnitario: number;
+  usuarioId: string;
+}) {
+  const vendaId = String(input.vendaId ?? "").trim();
+  const valorUnitario = Number(input.valorUnitario);
+  if (!vendaId) throw new Error("Venda inválida.");
+  if (!Number.isFinite(valorUnitario) || valorUnitario < 0) {
+    throw new Error("Valor unitário inválido.");
+  }
+
+  const vendaAtualizada = await prisma.$transaction(async (tx) => {
+    const venda = await tx.venda.findUniqueOrThrow({
+      where: { id: vendaId },
+      select: {
+        id: true,
+        vendedorId: true,
+        quantidade: true,
+      },
+    });
+
+    const seller = await tx.seller.findUniqueOrThrow({
+      where: { id: venda.vendedorId },
+      select: {
+        comissaoDescontaNaVenda: true,
+        comissaoTipo: true,
+        comissaoPercentual: true,
+        comissaoPorUnidade: true,
+      },
+    });
+
+    const valorTotal = Number((valorUnitario * venda.quantidade).toFixed(2));
+    const { valorComissaoRetida, valorSaldoRepasse } = calcularRepasseVenda(
+      valorTotal,
+      venda.quantidade,
+      seller
+    );
+
+    const updated = await tx.venda.update({
+      where: { id: vendaId },
+      data: {
+        valorUnitario,
+        valorTotal,
+        valorComissaoRetida,
+        valorSaldoRepasse,
+      },
+      select: { id: true, vendedorId: true },
+    });
+
+    await tx.movimentacaoEstoque.updateMany({
+      where: { vendaId: venda.id },
+      data: {
+        valorUnitario,
+        valorTotal,
+      },
+    });
+
+    return updated;
+  });
+
+  await recalcularStatusVendasVendedor(vendaAtualizada.vendedorId);
+}
