@@ -56,7 +56,7 @@ export default async function VendedorDetalhePage({
         }
       : {};
 
-  const [stocks, vendas, movs, fin, acertoPeriodo] = await Promise.all([
+  const [stocks, vendas, movs, fin, vendasAcertoPeriodo, recebidoPeriodo] = await Promise.all([
     prisma.sellerProductStock.findMany({
       where: { sellerId: id, quantidade: { gt: 0 } },
       include: { product: true },
@@ -75,28 +75,39 @@ export default async function VendedorDetalhePage({
       include: { produto: true, usuarioResponsavel: true },
     }),
     getSellerFinancialTotals(id),
-    prisma.venda.aggregate({
+    prisma.venda.findMany({
       where: { vendedorId: id, ...wherePeriodo },
-      _sum: { quantidade: true, valorTotal: true },
-      _count: { _all: true },
+      select: {
+        quantidade: true,
+        valorTotal: true,
+        produto: { select: { custoUnitario: true } },
+      },
+    }),
+    prisma.recebimento.aggregate({
+      where: {
+        vendedorId: id,
+        ...(wherePeriodo as object),
+      },
+      _sum: { valorRecebido: true },
     }),
   ]);
 
   const pendente = fin.saldoPendente > 0;
   const percentualSocio = Number(seller.acertoSocietarioPercentual ?? 50);
-  const qtdVendidaPeriodo = acertoPeriodo._sum.quantidade ?? 0;
-  const brutoPeriodo = Number(acertoPeriodo._sum.valorTotal ?? 0);
-  const parcelaSocio = (brutoPeriodo * percentualSocio) / 100;
-  const parcelaEmpresa = brutoPeriodo - parcelaSocio;
-  const recebidoPeriodo = await prisma.recebimento.aggregate({
-    where: {
-      vendedorId: id,
-      ...(wherePeriodo as object),
-    },
-    _sum: { valorRecebido: true },
-  });
+  const qtdVendidaPeriodo = vendasAcertoPeriodo.reduce((acc, v) => acc + v.quantidade, 0);
+  const brutoPeriodo = vendasAcertoPeriodo.reduce(
+    (acc, v) => acc + Number(v.valorTotal),
+    0
+  );
+  const custoPeriodo = vendasAcertoPeriodo.reduce(
+    (acc, v) => acc + Number(v.produto.custoUnitario) * v.quantidade,
+    0
+  );
+  const lucroPeriodo = Math.max(0, brutoPeriodo - custoPeriodo);
+  const parcelaSocio = (lucroPeriodo * percentualSocio) / 100;
+  const parcelaEmpresa = lucroPeriodo - parcelaSocio;
   const totalRecebidoPeriodo = Number(recebidoPeriodo._sum.valorRecebido ?? 0);
-  const acertoAPagarSocio = Math.max(0, totalRecebidoPeriodo - parcelaEmpresa);
+  const acertoAPagarSocio = parcelaSocio;
 
   return (
     <div className="flex w-full flex-col gap-6">
@@ -449,17 +460,25 @@ export default async function VendedorDetalhePage({
                 <p className="mt-1 font-heading text-2xl font-bold tabular-nums">{formatBRL(brutoPeriodo)}</p>
               </div>
               <div className="rounded-xl border border-border/70 bg-card p-3">
+                <p className="text-xs font-medium text-muted-foreground">Custo estimado</p>
+                <p className="mt-1 font-heading text-2xl font-bold tabular-nums">{formatBRL(custoPeriodo)}</p>
+              </div>
+              <div className="rounded-xl border border-border/70 bg-card p-3">
+                <p className="text-xs font-medium text-muted-foreground">Lucro do período</p>
+                <p className="mt-1 font-heading text-2xl font-bold tabular-nums">{formatBRL(lucroPeriodo)}</p>
+              </div>
+              <div className="rounded-xl border border-border/70 bg-card p-3">
                 <p className="text-xs font-medium text-muted-foreground">Recebido dele</p>
                 <p className="mt-1 font-heading text-2xl font-bold tabular-nums">
                   {formatBRL(totalRecebidoPeriodo)}
                 </p>
               </div>
               <div className="rounded-xl border border-border/70 bg-card p-3">
-                <p className="text-xs font-medium text-muted-foreground">Parcela sócio</p>
+                <p className="text-xs font-medium text-muted-foreground">Parcela sócio (sobre lucro)</p>
                 <p className="mt-1 font-heading text-2xl font-bold tabular-nums">{formatBRL(parcelaSocio)}</p>
               </div>
               <div className="rounded-xl border border-border/70 bg-card p-3">
-                <p className="text-xs font-medium text-muted-foreground">Parcela empresa</p>
+                <p className="text-xs font-medium text-muted-foreground">Parcela empresa (sobre lucro)</p>
                 <p className="mt-1 font-heading text-2xl font-bold tabular-nums">{formatBRL(parcelaEmpresa)}</p>
               </div>
               <div className="rounded-xl border border-primary/30 bg-primary/[0.06] p-3">
@@ -468,7 +487,7 @@ export default async function VendedorDetalhePage({
               </div>
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
-              Cálculo do acerto: recebido no período - parcela da empresa.
+              Cálculo societário: (bruto - custo) = lucro; percentual do sócio aplicado sobre o lucro.
             </p>
           </CardContent>
         </Card>
