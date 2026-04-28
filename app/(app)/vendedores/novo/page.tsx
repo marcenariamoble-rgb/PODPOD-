@@ -141,6 +141,34 @@ export default async function NovoVendedorPage({
                 </Field>
               </div>
             </div>
+            <div className="rounded-xl border border-border/70 bg-muted/20 p-4 space-y-4">
+              <p className="text-sm font-semibold text-foreground">Acerto societário</p>
+              <p className="text-xs font-medium text-muted-foreground leading-relaxed">
+                Use quando o vendedor repassa o valor integral e depois vocês fazem
+                divisão por percentual (ex.: sócio 50/50).
+              </p>
+              <Field label="Ativar painel de acerto" htmlFor="acertoSocietarioAtivo">
+                <select
+                  id="acertoSocietarioAtivo"
+                  name="acertoSocietarioAtivo"
+                  className={nativeSelectClassName}
+                  defaultValue="false"
+                >
+                  <option value="false">Não</option>
+                  <option value="true">Sim</option>
+                </select>
+              </Field>
+              <Field label="Percentual do sócio (%)" htmlFor="acertoSocietarioPercentual">
+                <Input
+                  id="acertoSocietarioPercentual"
+                  name="acertoSocietarioPercentual"
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="Ex.: 50"
+                  defaultValue="50"
+                />
+              </Field>
+            </div>
             <Field label="Situação" htmlFor="ativo">
               <select id="ativo" name="ativo" className={nativeSelectClassName}>
                 <option value="true">Ativo</option>

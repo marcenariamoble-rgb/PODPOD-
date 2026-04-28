@@ -151,6 +151,10 @@ model Seller {
   comissaoPercentual      Decimal?             @db.Decimal(5, 2)
   /// Valor fixo de comissão por unidade vendida (R$).
   comissaoPorUnidade      Decimal?             @db.Decimal(12, 2)
+  /// Quando ativo, exibe painel de acerto de sociedade no vendedor (ex.: 50/50).
+  acertoSocietarioAtivo   Boolean              @default(false)
+  /// Percentual do sócio sobre o valor bruto vendido no período.
+  acertoSocietarioPercentual Decimal?          @db.Decimal(5, 2)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

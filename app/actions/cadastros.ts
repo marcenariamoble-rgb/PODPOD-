@@ -97,6 +97,43 @@ function parseSellerComissaoFromForm(formData: FormData):
   };
 }
 
+function parseSellerAcertoSocietarioFromForm(formData: FormData):
+  | {
+      ok: true;
+      acertoSocietarioAtivo: boolean;
+      acertoSocietarioPercentual: Prisma.Decimal | null;
+    }
+  | { ok: false; error: string } {
+  const ativo = String(formData.get("acertoSocietarioAtivo") ?? "false") === "true";
+  const raw = String(formData.get("acertoSocietarioPercentual") ?? "").trim();
+  if (!ativo) {
+    return {
+      ok: true,
+      acertoSocietarioAtivo: false,
+      acertoSocietarioPercentual: null,
+    };
+  }
+  const percentual = parseMoney(raw);
+  if (percentual == null) {
+    return {
+      ok: false,
+      error: "Informe o percentual do sócio para o acerto societário (ex.: 50).",
+    };
+  }
+  const n = Number(percentual);
+  if (n <= 0 || n >= 100) {
+    return {
+      ok: false,
+      error: "Percentual do sócio deve estar entre 0 e 100.",
+    };
+  }
+  return {
+    ok: true,
+    acertoSocietarioAtivo: true,
+    acertoSocietarioPercentual: percentual,
+  };
+}
+
 function skuFromNome(nome: string) {
   const slug = nome
     .normalize("NFD")
@@ -317,6 +354,12 @@ export async function actionCreateSeller(formData: FormData) {
       "/vendedores/novo?error=" + encodeURIComponent(comissao.error)
     );
   }
+  const acertoSocietario = parseSellerAcertoSocietarioFromForm(formData);
+  if (!acertoSocietario.ok) {
+    redirect(
+      "/vendedores/novo?error=" + encodeURIComponent(acertoSocietario.error)
+    );
+  }
 
   const codigoParsed = parseCodigoVendaParaGuardar(
     String(formData.get("codigoVenda") ?? "")
@@ -352,6 +395,8 @@ export async function actionCreateSeller(formData: FormData) {
       comissaoTipo: comissao.comissaoTipo,
       comissaoPercentual: comissao.comissaoPercentual,
       comissaoPorUnidade: comissao.comissaoPorUnidade,
+      acertoSocietarioAtivo: acertoSocietario.acertoSocietarioAtivo,
+      acertoSocietarioPercentual: acertoSocietario.acertoSocietarioPercentual,
     },
   });
 
@@ -393,6 +438,10 @@ export async function actionUpdateSeller(formData: FormData) {
   if (!comissao.ok) {
     redirect(`/vendedores/${id}?error=` + encodeURIComponent(comissao.error));
   }
+  const acertoSocietario = parseSellerAcertoSocietarioFromForm(formData);
+  if (!acertoSocietario.ok) {
+    redirect(`/vendedores/${id}?error=` + encodeURIComponent(acertoSocietario.error));
+  }
 
   const codigoParsed = parseCodigoVendaParaGuardar(
     String(formData.get("codigoVenda") ?? "")
@@ -429,6 +478,8 @@ export async function actionUpdateSeller(formData: FormData) {
       comissaoTipo: comissao.comissaoTipo,
       comissaoPercentual: comissao.comissaoPercentual,
       comissaoPorUnidade: comissao.comissaoPorUnidade,
+      acertoSocietarioAtivo: acertoSocietario.acertoSocietarioAtivo,
+      acertoSocietarioPercentual: acertoSocietario.acertoSocietarioPercentual,
     },
   });
 

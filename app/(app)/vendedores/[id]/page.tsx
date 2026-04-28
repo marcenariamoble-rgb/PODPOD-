@@ -28,6 +28,7 @@ import {
 import { getSellerFinancialTotals } from "@/lib/services/calculations.service";
 import { formatBRL } from "@/lib/utils/format";
 import { format } from "date-fns";
+import { endOfDay, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export default async function VendedorDetalhePage({
@@ -35,14 +36,27 @@ export default async function VendedorDetalhePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string; ok?: string }>;
+  searchParams: Promise<{ error?: string; ok?: string; de?: string; ate?: string }>;
 }) {
   const { id } = await params;
-  const { error, ok } = await searchParams;
+  const { error, ok, de, ate } = await searchParams;
   const seller = await prisma.seller.findUnique({ where: { id } });
   if (!seller) notFound();
+  const from = de ? new Date(de) : null;
+  const to = ate ? new Date(ate) : null;
+  const periodFrom = from && !Number.isNaN(from.getTime()) ? startOfDay(from) : null;
+  const periodTo = to && !Number.isNaN(to.getTime()) ? endOfDay(to) : null;
+  const wherePeriodo =
+    periodFrom || periodTo
+      ? {
+          createdAt: {
+            ...(periodFrom ? { gte: periodFrom } : {}),
+            ...(periodTo ? { lte: periodTo } : {}),
+          },
+        }
+      : {};
 
-  const [stocks, vendas, movs, fin] = await Promise.all([
+  const [stocks, vendas, movs, fin, acertoPeriodo] = await Promise.all([
     prisma.sellerProductStock.findMany({
       where: { sellerId: id, quantidade: { gt: 0 } },
       include: { product: true },
@@ -61,9 +75,28 @@ export default async function VendedorDetalhePage({
       include: { produto: true, usuarioResponsavel: true },
     }),
     getSellerFinancialTotals(id),
+    prisma.venda.aggregate({
+      where: { vendedorId: id, ...wherePeriodo },
+      _sum: { quantidade: true, valorTotal: true },
+      _count: { _all: true },
+    }),
   ]);
 
   const pendente = fin.saldoPendente > 0;
+  const percentualSocio = Number(seller.acertoSocietarioPercentual ?? 50);
+  const qtdVendidaPeriodo = acertoPeriodo._sum.quantidade ?? 0;
+  const brutoPeriodo = Number(acertoPeriodo._sum.valorTotal ?? 0);
+  const parcelaSocio = (brutoPeriodo * percentualSocio) / 100;
+  const parcelaEmpresa = brutoPeriodo - parcelaSocio;
+  const recebidoPeriodo = await prisma.recebimento.aggregate({
+    where: {
+      vendedorId: id,
+      ...(wherePeriodo as object),
+    },
+    _sum: { valorRecebido: true },
+  });
+  const totalRecebidoPeriodo = Number(recebidoPeriodo._sum.valorRecebido ?? 0);
+  const acertoAPagarSocio = Math.max(0, totalRecebidoPeriodo - parcelaEmpresa);
 
   return (
     <div className="flex w-full flex-col gap-6">
@@ -246,6 +279,30 @@ export default async function VendedorDetalhePage({
                 </Field>
               </div>
             </div>
+            <div className="rounded-xl border border-border/70 bg-muted/20 p-4 space-y-4">
+              <p className="text-sm font-semibold text-foreground">Acerto societário</p>
+              <Field label="Ativar painel de acerto" htmlFor="acertoSocietarioAtivo">
+                <select
+                  id="acertoSocietarioAtivo"
+                  name="acertoSocietarioAtivo"
+                  className={nativeSelectClassName}
+                  defaultValue={seller.acertoSocietarioAtivo ? "true" : "false"}
+                >
+                  <option value="false">Não</option>
+                  <option value="true">Sim</option>
+                </select>
+              </Field>
+              <Field label="Percentual do sócio (%)" htmlFor="acertoSocietarioPercentual">
+                <Input
+                  id="acertoSocietarioPercentual"
+                  name="acertoSocietarioPercentual"
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="Ex.: 50"
+                  defaultValue={String(seller.acertoSocietarioPercentual ?? "50")}
+                />
+              </Field>
+            </div>
             <Field label="Situação" htmlFor="ativo">
               <select
                 id="ativo"
@@ -356,6 +413,66 @@ export default async function VendedorDetalhePage({
           </CardContent>
         </Card>
       </div>
+
+      {seller.acertoSocietarioAtivo ? (
+        <Card className="border-primary/25 bg-primary/[0.04]">
+          <CardHeader className="space-y-3">
+            <CardTitle className="text-base">Acerto societário ({percentualSocio}% sócio)</CardTitle>
+            <form className="grid gap-3 sm:grid-cols-3" method="get">
+              <Field label="De" htmlFor="acerto-de">
+                <Input id="acerto-de" name="de" type="date" defaultValue={de ?? ""} />
+              </Field>
+              <Field label="Até" htmlFor="acerto-ate">
+                <Input id="acerto-ate" name="ate" type="date" defaultValue={ate ?? ""} />
+              </Field>
+              <div className="flex items-end gap-2">
+                <Button type="submit" size="sm" className="rounded-lg font-semibold">
+                  Aplicar
+                </Button>
+                <Link
+                  href={`/vendedores/${id}`}
+                  className={cn(buttonVariants({ variant: "outline", size: "sm" }), "rounded-lg")}
+                >
+                  Limpar
+                </Link>
+              </div>
+            </form>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="rounded-xl border border-border/70 bg-card p-3">
+                <p className="text-xs font-medium text-muted-foreground">Qtd vendida (período)</p>
+                <p className="mt-1 font-heading text-2xl font-bold tabular-nums">{qtdVendidaPeriodo}</p>
+              </div>
+              <div className="rounded-xl border border-border/70 bg-card p-3">
+                <p className="text-xs font-medium text-muted-foreground">Bruto vendido</p>
+                <p className="mt-1 font-heading text-2xl font-bold tabular-nums">{formatBRL(brutoPeriodo)}</p>
+              </div>
+              <div className="rounded-xl border border-border/70 bg-card p-3">
+                <p className="text-xs font-medium text-muted-foreground">Recebido dele</p>
+                <p className="mt-1 font-heading text-2xl font-bold tabular-nums">
+                  {formatBRL(totalRecebidoPeriodo)}
+                </p>
+              </div>
+              <div className="rounded-xl border border-border/70 bg-card p-3">
+                <p className="text-xs font-medium text-muted-foreground">Parcela sócio</p>
+                <p className="mt-1 font-heading text-2xl font-bold tabular-nums">{formatBRL(parcelaSocio)}</p>
+              </div>
+              <div className="rounded-xl border border-border/70 bg-card p-3">
+                <p className="text-xs font-medium text-muted-foreground">Parcela empresa</p>
+                <p className="mt-1 font-heading text-2xl font-bold tabular-nums">{formatBRL(parcelaEmpresa)}</p>
+              </div>
+              <div className="rounded-xl border border-primary/30 bg-primary/[0.06] p-3">
+                <p className="text-xs font-medium text-muted-foreground">Acerto a pagar ao sócio</p>
+                <p className="mt-1 font-heading text-2xl font-bold tabular-nums">{formatBRL(acertoAPagarSocio)}</p>
+              </div>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Cálculo do acerto: recebido no período - parcela da empresa.
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader>
