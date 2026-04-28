@@ -242,7 +242,7 @@ export async function listHistoricoVendedor(
     }),
   ]);
 
-  let timeline = [
+  let timeline: VendedorHistoricoItem[] = [
     ...vendas.map((v) => ({
       id: `VENDA:${v.id}`,
       kind: "VENDA" as const,
