@@ -339,11 +339,18 @@ export async function actionDevolucao(formData: FormData) {
 }
 
 export async function actionRecebimento(formData: FormData) {
+  const dataRecebimentoRaw = String(formData.get("dataRecebimento") ?? "").trim();
+  const dataRecebimento =
+    dataRecebimentoRaw !== "" ? new Date(dataRecebimentoRaw) : new Date();
+  if (Number.isNaN(dataRecebimento.getTime())) {
+    throw new Error("Data de recebimento inválida.");
+  }
   await registrarRecebimento({
     vendedorId: String(formData.get("vendedorId") ?? ""),
     valorRecebido: Number(formData.get("valorRecebido")),
     formaPagamento: String(formData.get("formaPagamento") ?? ""),
     observacoes: String(formData.get("observacoes") ?? "") || undefined,
+    dataRecebimento,
   });
   revalidatePath("/dashboard");
   revalidatePath("/vendas");

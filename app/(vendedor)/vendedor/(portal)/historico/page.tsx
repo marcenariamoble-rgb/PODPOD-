@@ -25,7 +25,7 @@ import {
 
 const tipoOptions: Array<{ value: VendedorHistoricoTipoFiltro; label: string }> = [
   { value: "TODOS", label: "Todos" },
-  { value: "PAGAMENTO", label: "Pagamento" },
+  { value: "PAGAMENTO", label: "Só valor pago" },
   { value: "COMODATO", label: "Comodato" },
   { value: "DEBITO_BRUTO", label: "Débito bruto" },
   { value: "DEBITO_LIQUIDO", label: "Débito líquido" },
@@ -175,6 +175,44 @@ export default async function VendedorHistoricoPage({
 
       <form method="get" className="space-y-3 rounded-2xl border border-border/70 bg-card p-4">
         {modo === "resumido" ? <input type="hidden" name="modo" value="resumido" /> : null}
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/vendedor/historico?tipo=PAGAMENTO&modo=resumido"
+            className={cn(
+              buttonVariants({
+                size: "sm",
+                variant: tipo === "PAGAMENTO" ? "default" : "outline",
+              }),
+              "rounded-xl font-semibold"
+            )}
+          >
+            Só valor pago
+          </Link>
+          <Link
+            href="/vendedor/historico?tipo=DEBITO_LIQUIDO&modo=resumido"
+            className={cn(
+              buttonVariants({
+                size: "sm",
+                variant: tipo === "DEBITO_LIQUIDO" ? "default" : "outline",
+              }),
+              "rounded-xl font-semibold"
+            )}
+          >
+            Só débito líquido
+          </Link>
+          <Link
+            href="/vendedor/historico?modo=resumido"
+            className={cn(
+              buttonVariants({
+                size: "sm",
+                variant: tipo === "TODOS" ? "secondary" : "outline",
+              }),
+              "rounded-xl font-semibold"
+            )}
+          >
+            Ver tudo
+          </Link>
+        </div>
         <div className="grid gap-3 sm:grid-cols-3">
           <Field label="Tipo" htmlFor="f-tipo">
             <select

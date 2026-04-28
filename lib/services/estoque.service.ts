@@ -912,9 +912,13 @@ export async function registrarRecebimento(input: {
   valorRecebido: number;
   formaPagamento: string;
   observacoes?: string;
+  dataRecebimento?: Date;
 }) {
-  const { vendedorId, valorRecebido, formaPagamento, observacoes } = input;
+  const { vendedorId, valorRecebido, formaPagamento, observacoes, dataRecebimento } = input;
   if (valorRecebido <= 0) throw new Error("Valor recebido inválido.");
+  if (dataRecebimento && Number.isNaN(dataRecebimento.getTime())) {
+    throw new Error("Data de recebimento inválida.");
+  }
 
   await prisma.recebimento.create({
     data: {
@@ -922,6 +926,7 @@ export async function registrarRecebimento(input: {
       valorRecebido,
       formaPagamento,
       observacoes: observacoes ?? null,
+      ...(dataRecebimento ? { createdAt: dataRecebimento } : {}),
     },
   });
 
