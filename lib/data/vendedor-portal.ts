@@ -128,17 +128,34 @@ export type VendedorHistoricoItem = {
   observacoes?: string | null;
 };
 
+export type VendedorHistoricoResult = {
+  items: VendedorHistoricoItem[];
+  hasMore: boolean;
+  page: number;
+  perPage: number;
+  resumo: {
+    totalVendas: number;
+    totalRecebimentos: number;
+    saldoPeriodo: number;
+    quantidadeVendas: number;
+    quantidadeRecebimentos: number;
+  };
+};
+
 export async function listHistoricoVendedor(
   sellerId: string,
   filters?: {
     tipo?: VendedorHistoricoTipoFiltro;
     de?: string;
     ate?: string;
-    take?: number;
+    page?: number;
+    perPage?: number;
   }
-) {
+): Promise<VendedorHistoricoResult> {
   const tipo = filters?.tipo ?? "TODOS";
-  const take = Math.min(500, Math.max(20, filters?.take ?? 200));
+  const page = Math.max(1, Math.floor(filters?.page ?? 1));
+  const perPage = Math.min(100, Math.max(10, Math.floor(filters?.perPage ?? 25)));
+  const fetchTake = Math.min(500, page * perPage + perPage);
   const createdAtFilter: { gte?: Date; lte?: Date } = {};
   if (filters?.de) {
     const de = new Date(filters.de);
@@ -150,7 +167,8 @@ export async function listHistoricoVendedor(
   }
   const hasDateFilter = Boolean(createdAtFilter.gte || createdAtFilter.lte);
 
-  const [vendas, recebimentos, movimentacoes] = await Promise.all([
+  const [vendas, recebimentos, movimentacoes, resumoVendas, resumoRecebimentos] =
+    await Promise.all([
     tipo === "TODOS" || tipo === "VENDA"
       ? prisma.venda.findMany({
           where: {
@@ -158,7 +176,7 @@ export async function listHistoricoVendedor(
             ...(hasDateFilter ? { createdAt: createdAtFilter } : {}),
           },
           orderBy: { createdAt: "desc" },
-          take,
+          take: fetchTake,
           include: { produto: { select: { nome: true } } },
         })
       : Promise.resolve([]),
@@ -169,7 +187,7 @@ export async function listHistoricoVendedor(
             ...(hasDateFilter ? { createdAt: createdAtFilter } : {}),
           },
           orderBy: { createdAt: "desc" },
-          take,
+          take: fetchTake,
         })
       : Promise.resolve([]),
     tipo === "TODOS" ||
@@ -190,13 +208,29 @@ export async function listHistoricoVendedor(
             },
           },
           orderBy: { createdAt: "desc" },
-          take,
+          take: fetchTake,
           include: { produto: { select: { nome: true } } },
         })
       : Promise.resolve([]),
+    prisma.venda.aggregate({
+      where: {
+        vendedorId: sellerId,
+        ...(hasDateFilter ? { createdAt: createdAtFilter } : {}),
+      },
+      _sum: { valorTotal: true },
+      _count: { _all: true },
+    }),
+    prisma.recebimento.aggregate({
+      where: {
+        vendedorId: sellerId,
+        ...(hasDateFilter ? { createdAt: createdAtFilter } : {}),
+      },
+      _sum: { valorRecebido: true },
+      _count: { _all: true },
+    }),
   ]);
 
-  const timeline: VendedorHistoricoItem[] = [
+  const timeline = [
     ...vendas.map((v) => ({
       id: `VENDA:${v.id}`,
       kind: "VENDA" as const,
@@ -239,9 +273,26 @@ export async function listHistoricoVendedor(
       produtoNome: m.produto.nome,
       observacoes: m.observacoes,
     })),
-  ]
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-    .slice(0, take);
+  ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
-  return timeline;
+  const start = (page - 1) * perPage;
+  const end = start + perPage;
+  const items = timeline.slice(start, end);
+  const hasMore = timeline.length > end;
+  const totalVendas = Number(resumoVendas._sum.valorTotal ?? 0);
+  const totalRecebimentos = Number(resumoRecebimentos._sum.valorRecebido ?? 0);
+
+  return {
+    items,
+    hasMore,
+    page,
+    perPage,
+    resumo: {
+      totalVendas,
+      totalRecebimentos,
+      saldoPeriodo: totalVendas - totalRecebimentos,
+      quantidadeVendas: resumoVendas._count._all,
+      quantidadeRecebimentos: resumoRecebimentos._count._all,
+    },
+  };
 }
