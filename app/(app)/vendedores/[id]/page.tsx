@@ -25,6 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { RecebimentosTable } from "@/components/financeiro/recebimentos-table";
 import { getSellerFinancialTotals } from "@/lib/services/calculations.service";
 import { formatBRL } from "@/lib/utils/format";
 import { format } from "date-fns";
@@ -56,7 +57,8 @@ export default async function VendedorDetalhePage({
         }
       : {};
 
-  const [stocks, vendas, movs, fin, vendasAcertoPeriodo, recebidoPeriodo] = await Promise.all([
+  const [stocks, vendas, movs, fin, vendasAcertoPeriodo, recebidoPeriodo, recebimentos] =
+    await Promise.all([
     prisma.sellerProductStock.findMany({
       where: { sellerId: id, quantidade: { gt: 0 } },
       include: { product: true },
@@ -89,6 +91,12 @@ export default async function VendedorDetalhePage({
         ...(wherePeriodo as object),
       },
       _sum: { valorRecebido: true },
+    }),
+    prisma.recebimento.findMany({
+      where: { vendedorId: id },
+      orderBy: { createdAt: "desc" },
+      take: 30,
+      include: { vendedor: { select: { id: true, nome: true } } },
     }),
   ]);
 
@@ -424,6 +432,41 @@ export default async function VendedorDetalhePage({
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
+          <div>
+            <CardTitle className="text-base">Recebimentos registrados</CardTitle>
+            <p className="mt-1 text-sm font-medium text-muted-foreground">
+              Últimos 30 registos deste vendedor.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href={`/recebimentos/nova?vendedorId=${encodeURIComponent(id)}`}
+              className={cn(buttonVariants({ size: "sm" }), "rounded-xl font-semibold")}
+            >
+              Registrar recebimento
+            </Link>
+            <Link
+              href={`/recebimentos?vendedorId=${encodeURIComponent(id)}`}
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "rounded-xl font-semibold"
+              )}
+            >
+              Ver todos
+            </Link>
+          </div>
+        </CardHeader>
+        <CardContent className="overflow-x-auto p-0 pb-2">
+          <RecebimentosTable
+            rows={recebimentos}
+            showVendedor={false}
+            emptyMessage="Ainda não há recebimentos deste vendedor."
+          />
+        </CardContent>
+      </Card>
 
       {seller.acertoSocietarioAtivo ? (
         <Card className="border-primary/25 bg-primary/[0.04]">

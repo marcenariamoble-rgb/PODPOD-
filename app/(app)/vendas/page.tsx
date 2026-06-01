@@ -41,10 +41,10 @@ const acoes = [
     emphasis: false as const,
   },
   {
-    href: "/recebimentos/nova",
-    title: "Recebimento",
+    href: "/recebimentos",
+    title: "Recebimentos",
     description:
-      "Registar o que o vendedor repassa à empresa (saldo das vendas).",
+      "Ver o histórico do que os vendedores repassaram e registar novos pagamentos.",
     icon: Wallet,
     emphasis: false as const,
   },

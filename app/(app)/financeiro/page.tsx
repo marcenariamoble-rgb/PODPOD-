@@ -93,9 +93,18 @@ export default async function FinanceiroPage({
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
-            href="/recebimentos/nova"
+            href="/recebimentos"
             className={cn(
               buttonVariants({ variant: "default", size: "sm" }),
+              "rounded-xl font-semibold"
+            )}
+          >
+            Ver recebimentos
+          </Link>
+          <Link
+            href="/recebimentos/nova"
+            className={cn(
+              buttonVariants({ variant: "outline", size: "sm" }),
               "rounded-xl font-semibold"
             )}
           >

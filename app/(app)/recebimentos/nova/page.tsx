@@ -15,8 +15,17 @@ function toDateTimeLocalValue(date: Date): string {
   )}:${pad(date.getMinutes())}`;
 }
 
-export default async function NovoRecebimentoPage() {
+export default async function NovoRecebimentoPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ vendedorId?: string }>;
+}) {
+  const { vendedorId: vendedorIdParam } = await searchParams;
   const vendedores = await listVendedoresAtivos();
+  const vendedorPre =
+    vendedorIdParam && vendedores.some((v) => v.id === vendedorIdParam)
+      ? vendedorIdParam
+      : "";
   const nowInput = toDateTimeLocalValue(new Date());
 
   return (
@@ -34,7 +43,11 @@ export default async function NovoRecebimentoPage() {
           </p>
         </div>
         <Link
-          href="/vendas"
+          href={
+            vendedorPre
+              ? `/recebimentos?vendedorId=${encodeURIComponent(vendedorPre)}`
+              : "/recebimentos"
+          }
           className={cn(
             buttonVariants({ variant: "ghost", size: "sm" }),
             "shrink-0 rounded-lg font-semibold text-primary"
@@ -56,6 +69,7 @@ export default async function NovoRecebimentoPage() {
                 id="vendedorId"
                 name="vendedorId"
                 required
+                defaultValue={vendedorPre}
                 className={nativeSelectClassName}
               >
                 <option value="">Selecione…</option>

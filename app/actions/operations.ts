@@ -378,8 +378,9 @@ export async function actionRecebimento(formData: FormData) {
   if (Number.isNaN(dataRecebimento.getTime())) {
     throw new Error("Data de recebimento inválida.");
   }
+  const vendedorId = String(formData.get("vendedorId") ?? "");
   await registrarRecebimento({
-    vendedorId: String(formData.get("vendedorId") ?? ""),
+    vendedorId,
     valorRecebido: Number(formData.get("valorRecebido")),
     formaPagamento: String(formData.get("formaPagamento") ?? ""),
     observacoes: String(formData.get("observacoes") ?? "") || undefined,
@@ -389,6 +390,14 @@ export async function actionRecebimento(formData: FormData) {
   revalidatePath("/vendas");
   revalidatePath("/vendedores");
   revalidatePath("/financeiro");
+  revalidatePath("/recebimentos");
+  if (vendedorId) {
+    revalidatePath(`/vendedores/${vendedorId}`);
+  }
+  const dest = vendedorId
+    ? `/recebimentos?vendedorId=${encodeURIComponent(vendedorId)}&ok=1`
+    : "/recebimentos?ok=1";
+  redirect(dest);
 }
 
 export async function actionPerda(formData: FormData) {
