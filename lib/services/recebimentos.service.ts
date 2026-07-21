@@ -69,17 +69,17 @@ export function buildRecebimentoWhere(
   }
 
   if (filters.de || filters.ate) {
-    where.createdAt = {};
+    where.dataRecebimento = {};
     if (filters.de) {
       const d = new Date(filters.de);
       if (!Number.isNaN(d.getTime())) {
-        where.createdAt.gte = startOfDay(d);
+        where.dataRecebimento.gte = startOfDay(d);
       }
     }
     if (filters.ate) {
       const d = new Date(filters.ate);
       if (!Number.isNaN(d.getTime())) {
-        where.createdAt.lte = endOfDay(d);
+        where.dataRecebimento.lte = endOfDay(d);
       }
     }
   }
@@ -101,7 +101,7 @@ export async function listRecebimentosAdmin(filters: ListRecebimentosFilters) {
   const [rows, total, agg] = await Promise.all([
     prisma.recebimento.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy: { dataRecebimento: "desc" },
       take: RECEBIMENTOS_PAGE_SIZE,
       skip,
       include: { vendedor: { select: { id: true, nome: true } } },

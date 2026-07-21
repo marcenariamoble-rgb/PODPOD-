@@ -258,10 +258,14 @@ model Recebimento {
   valorRecebido  Decimal  @db.Decimal(12, 2)
   formaPagamento String
   observacoes    String?
+  /// Data do evento (quando o vendedor efetivamente repassou). Escolhida no formulário.
+  dataRecebimento DateTime @default(now())
+  /// Carimbo real de criação do registro (quando foi lançado no sistema). Não sobrescrever.
   createdAt      DateTime @default(now())
 
   vendedor Seller @relation(fields: [vendedorId], references: [id])
 
   @@index([vendedorId])
   @@index([createdAt])
+  @@index([vendedorId, dataRecebimento])
 }

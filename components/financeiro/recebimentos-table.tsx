@@ -16,12 +16,20 @@ import { formatBRL } from "@/lib/utils/format";
 
 export type RecebimentoTableRow = {
   id: string;
+  /** Data do evento (quando o vendedor repassou). */
+  dataRecebimento: Date;
+  /** Quando o registro foi lançado no sistema. */
   createdAt: Date;
   valorRecebido: { toString(): string } | number;
   formaPagamento: string;
   observacoes: string | null;
   vendedor: { id: string; nome: string };
 };
+
+/** Considera "lançado em data diferente" quando a diferença passa de ~1 min. */
+function foiLancadoRetroativo(dataRecebimento: Date, createdAt: Date): boolean {
+  return Math.abs(createdAt.getTime() - dataRecebimento.getTime()) > 60_000;
+}
 
 export function RecebimentosTable({
   rows,
@@ -59,7 +67,12 @@ export function RecebimentosTable({
             return (
               <TableRow key={r.id}>
                 <TableCell className="whitespace-nowrap text-xs tabular-nums">
-                  {format(r.createdAt, "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                  {format(r.dataRecebimento, "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                  {foiLancadoRetroativo(r.dataRecebimento, r.createdAt) ? (
+                    <span className="mt-0.5 block text-[10px] font-medium text-muted-foreground">
+                      lançado {format(r.createdAt, "dd/MM/yyyy", { locale: ptBR })}
+                    </span>
+                  ) : null}
                 </TableCell>
                 {showVendedor ? (
                   <TableCell className="font-medium">

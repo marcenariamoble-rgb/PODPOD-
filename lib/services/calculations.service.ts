@@ -150,7 +150,7 @@ export async function sumRecebimentosNoPeriodo(
   to: Date
 ): Promise<number> {
   const r = await prisma.recebimento.aggregate({
-    where: { createdAt: { gte: from, lte: to } },
+    where: { dataRecebimento: { gte: from, lte: to } },
     _sum: { valorRecebido: true },
   });
   return toNumber(r._sum.valorRecebido);

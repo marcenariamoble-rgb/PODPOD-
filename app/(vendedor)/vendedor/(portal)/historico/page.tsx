@@ -366,6 +366,12 @@ export default async function VendedorHistoricoPage({
                           ) : null}
                           {item.formaPagamento ? <span>Pagamento: {item.formaPagamento}</span> : null}
                           {item.quantidade != null ? <span>Quantidade: {item.quantidade}</span> : null}
+                          {item.lancadoEm &&
+                          Math.abs(item.lancadoEm.getTime() - item.createdAt.getTime()) > 60_000 ? (
+                            <span>
+                              Lançado em: {format(item.lancadoEm, "dd/MM/yyyy", { locale: ptBR })}
+                            </span>
+                          ) : null}
                         </div>
                         {item.observacoes ? (
                           <p className="mt-2 rounded-lg bg-muted/35 px-2.5 py-2 text-xs text-muted-foreground">

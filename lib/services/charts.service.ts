@@ -43,13 +43,13 @@ export async function vendasPorProdutoNoPeriodo(from: Date, to: Date) {
 
 export async function recebimentosPorDiaNoPeriodo(from: Date, to: Date) {
   const rows = await prisma.recebimento.findMany({
-    where: { createdAt: { gte: from, lte: to } },
-    select: { createdAt: true, valorRecebido: true },
-    orderBy: { createdAt: "asc" },
+    where: { dataRecebimento: { gte: from, lte: to } },
+    select: { dataRecebimento: true, valorRecebido: true },
+    orderBy: { dataRecebimento: "asc" },
   });
   const map = new Map<string, number>();
   for (const r of rows) {
-    const key = r.createdAt.toISOString().slice(0, 10);
+    const key = r.dataRecebimento.toISOString().slice(0, 10);
     map.set(key, (map.get(key) ?? 0) + toNumber(r.valorRecebido));
   }
   return Array.from(map.entries()).map(([dia, valor]) => ({ dia, valor }));

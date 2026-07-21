@@ -131,6 +131,8 @@ export type VendedorHistoricoItem = {
   formaPagamento?: string;
   observacoes?: string | null;
   valorDebitoLiquido?: number;
+  /** Para recebimentos: quando foi efetivamente lançado no sistema (≠ data do evento). */
+  lancadoEm?: Date;
 };
 
 export type VendedorHistoricoResult = {
@@ -193,9 +195,9 @@ export async function listHistoricoVendedor(
       ? prisma.recebimento.findMany({
           where: {
             vendedorId: sellerId,
-            ...(hasDateFilter ? { createdAt: createdAtFilter } : {}),
+            ...(hasDateFilter ? { dataRecebimento: createdAtFilter } : {}),
           },
-          orderBy: { createdAt: "desc" },
+          orderBy: { dataRecebimento: "desc" },
           take: fetchTake,
         })
       : Promise.resolve([]),
@@ -235,7 +237,7 @@ export async function listHistoricoVendedor(
     prisma.recebimento.aggregate({
       where: {
         vendedorId: sellerId,
-        ...(hasDateFilter ? { createdAt: createdAtFilter } : {}),
+        ...(hasDateFilter ? { dataRecebimento: createdAtFilter } : {}),
       },
       _sum: { valorRecebido: true },
       _count: { _all: true },
@@ -259,12 +261,13 @@ export async function listHistoricoVendedor(
     ...recebimentos.map((r) => ({
       id: `RECEBIMENTO:${r.id}`,
       kind: "RECEBIMENTO" as const,
-      createdAt: r.createdAt,
+      createdAt: r.dataRecebimento,
       titulo: "Pagamento recebido pela empresa",
       descricao: "Repasse do vendedor registrado",
       valor: Number(r.valorRecebido),
       formaPagamento: r.formaPagamento,
       observacoes: r.observacoes,
+      lancadoEm: r.createdAt,
     })),
     ...movimentacoes.map((m) => ({
       id: `${m.tipoMovimentacao}:${m.id}`,

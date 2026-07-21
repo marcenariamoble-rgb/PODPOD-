@@ -56,8 +56,19 @@ export default async function VendedorDetalhePage({
           },
         }
       : {};
+  // Recebimentos são filtrados pela data do evento (dataRecebimento), não pela
+  // data de criação do registro.
+  const wherePeriodoRecebimento =
+    periodFrom || periodTo
+      ? {
+          dataRecebimento: {
+            ...(periodFrom ? { gte: periodFrom } : {}),
+            ...(periodTo ? { lte: periodTo } : {}),
+          },
+        }
+      : {};
 
-  const [stocks, vendas, movs, fin, vendasAcertoPeriodo, recebidoPeriodo, recebimentos] =
+  const [stocks, vendas, movs, fin, vendasAcertoPeriodo, recebidoPeriodo, recebimentos, recebimentosCount] =
     await Promise.all([
     prisma.sellerProductStock.findMany({
       where: { sellerId: id, quantidade: { gt: 0 } },
@@ -88,16 +99,17 @@ export default async function VendedorDetalhePage({
     prisma.recebimento.aggregate({
       where: {
         vendedorId: id,
-        ...(wherePeriodo as object),
+        ...wherePeriodoRecebimento,
       },
       _sum: { valorRecebido: true },
     }),
     prisma.recebimento.findMany({
       where: { vendedorId: id },
-      orderBy: { createdAt: "desc" },
+      orderBy: { dataRecebimento: "desc" },
       take: 30,
       include: { vendedor: { select: { id: true, nome: true } } },
     }),
+    prisma.recebimento.count({ where: { vendedorId: id } }),
   ]);
 
   const pendente = fin.saldoPendente > 0;
@@ -438,7 +450,9 @@ export default async function VendedorDetalhePage({
           <div>
             <CardTitle className="text-base">Recebimentos registrados</CardTitle>
             <p className="mt-1 text-sm font-medium text-muted-foreground">
-              Últimos 30 registos deste vendedor.
+              {recebimentosCount > 30
+                ? `Mostrando os 30 mais recentes de ${recebimentosCount}. Use “Ver todos” para a lista completa.`
+                : `${recebimentosCount} registo(s) deste vendedor.`}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">

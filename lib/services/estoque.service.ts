@@ -926,7 +926,9 @@ export async function registrarRecebimento(input: {
       valorRecebido,
       formaPagamento,
       observacoes: observacoes ?? null,
-      ...(dataRecebimento ? { createdAt: dataRecebimento } : {}),
+      // `dataRecebimento` = data do evento (escolhida no formulário).
+      // `createdAt` fica com o carimbo real de criação (default now()).
+      ...(dataRecebimento ? { dataRecebimento } : {}),
     },
   });
 
